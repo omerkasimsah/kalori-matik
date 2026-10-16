@@ -1,0 +1,7 @@
+# android/key.properties olarak kopyalayın (git'e eklenmez)
+# Anahtar oluşturma:
+#   keytool -genkey -v -keystore %USERPROFILE%\kalorimatik-upload.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+storePassword=<anahtar deposu şifresi>
+keyPassword=<anahtar şifresi>
+keyAlias=upload
+storeFile=C:/Users/<kullanıcı>/kalorimatik-upload.jks

@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Çekirdek (Core) ve Uygulama Teması İçe Aktarımları
 import 'core/config/app_config.dart';
+import 'core/services/supabase_service.dart';
 import 'core/theme/app_theme.dart';
 
 // Özellik (Feature) / Modül Ekranlarının İçe Aktarımları
@@ -60,7 +61,7 @@ final _router = GoRouter(
   initialLocation: '/',
   // Oturumu olmayan kullanıcı korumalı bir sayfaya gidemez.
   redirect: (context, state) {
-    final loggedIn = Supabase.instance.client.auth.currentSession != null;
+    final loggedIn = SupabaseService.isLoggedIn;
     if (!loggedIn && !_publicRoutes.contains(state.matchedLocation)) {
       return '/login';
     }
@@ -140,8 +141,7 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _checkAuthStatus() async {
     await Future.delayed(const Duration(milliseconds: 1200));
     if (mounted) {
-      final session = Supabase.instance.client.auth.currentSession;
-      if (session != null) {
+      if (SupabaseService.isLoggedIn) {
         context.go('/home');
       } else {
         context.go('/login');

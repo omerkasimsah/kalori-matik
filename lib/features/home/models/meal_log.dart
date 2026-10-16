@@ -12,6 +12,9 @@ class MealLog {
   final double? carbs;    // Karbonhidrat miktarı (gram)
   final double? fat;      // Yağ miktarı (gram)
 
+  // Koçun / diyetisyenin bu öğüne bıraktığı yorum
+  final String? coachComment;
+
   const MealLog({
     required this.id,
     required this.name,
@@ -21,7 +24,10 @@ class MealLog {
     this.protein,
     this.carbs,
     this.fat,
+    this.coachComment,
   });
+
+  bool get hasCoachComment => coachComment != null && coachComment!.isNotEmpty;
 
   /// Öğün Zamanı (Format: HH:mm)
   String get time =>
@@ -42,6 +48,7 @@ class MealLog {
       protein: _toDouble(map['protein']),
       carbs: _toDouble(map['carbs']),
       fat: _toDouble(map['fat']),
+      coachComment: map['coach_comment'] as String?,
     );
   }
 
@@ -54,6 +61,7 @@ class MealLog {
     double? protein,
     double? carbs,
     double? fat,
+    String? coachComment,
   }) {
     return MealLog(
       id: id ?? this.id,
@@ -64,6 +72,10 @@ class MealLog {
       protein: protein ?? this.protein,
       carbs: carbs ?? this.carbs,
       fat: fat ?? this.fat,
+      // Boş metin yorumu temizler
+      coachComment: coachComment == null
+          ? this.coachComment
+          : (coachComment.isEmpty ? null : coachComment),
     );
   }
 

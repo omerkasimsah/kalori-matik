@@ -1,9 +1,19 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../../features/home/models/meal_log.dart';
+import '../config/app_config.dart';
+import 'demo_backend.dart';
 
 class SupabaseService {
   // Supabase istemcisinin tekil (singleton) örneğine güvenli erişim noktası
   static final SupabaseClient client = Supabase.instance.client;
+
+  /// Demo modunda tüm veriler bellekten gelir (bkz. DemoBackend).
+  static bool get isDemo => AppConfig.isDemo;
+
+  /// Geçerli bir oturum var mı?
+  static bool get isLoggedIn =>
+      isDemo ? DemoBackend.signedIn : client.auth.currentSession != null;
 
   // ── KİMLİK DOĞRULAMA (AUTH) ────────────────────────────────────────────────
 
@@ -12,6 +22,10 @@ class SupabaseService {
   }
 
   static Future<AuthResponse> signIn(String email, String password) async {
+    if (isDemo) {
+      DemoBackend.signIn();
+      return AuthResponse(user: DemoBackend.user);
+    }
     return await client.auth
         .signInWithPassword(email: email.trim(), password: password);
   }
@@ -52,11 +66,20 @@ class SupabaseService {
   }
 
   static Future<void> signOut() async {
+    if (isDemo) return DemoBackend.signOut();
+    await client.auth.signOut();
+  }
+
+  /// Hesabı ve tüm verileri kalıcı olarak siler (Google Play zorunluluğu).
+  static Future<void> deleteMyAccount() async {
+    if (isDemo) return DemoBackend.signOut();
+    await client.rpc('delete_my_account');
     await client.auth.signOut();
   }
 
   // Senkron olarak o an sisteme giriş yapmış kullanıcı bilgisini döner
   static User? getCurrentUser() {
+    if (isDemo) return DemoBackend.signedIn ? DemoBackend.user : null;
     return client.auth.currentUser;
   }
 
@@ -64,6 +87,7 @@ class SupabaseService {
 
   // Verilen profil verisini Supabase 'profiles' tablosuna kaydeder veya günceller (Upsert tekniği)
   static Future<void> saveProfile(Map<String, dynamic> profileData) async {
+    if (isDemo) return DemoBackend.saveProfile(profileData);
     final user = getCurrentUser();
     if (user == null) throw Exception('Kullanıcı girişi yapılmamış.');
 
@@ -73,6 +97,7 @@ class SupabaseService {
   }
 
   static Future<Map<String, dynamic>?> getProfile() async {
+    if (isDemo) return DemoBackend.profile;
     final user = getCurrentUser();
     if (user == null) return null;
     final data = await client
@@ -98,6 +123,7 @@ class SupabaseService {
   // ── PROFESYONEL YÖNETİMİ (KOÇ / DİYETİSYEN) ──────────────────────────────
 
   static Future<void> addClientByKaloriId(String kaloriId) async {
+    if (isDemo) throw Exception('Demo modunda danışan eklenemez.');
     final user = getCurrentUser();
     if (user == null) throw Exception('Profesyonel girişi yapılmamış.');
 
@@ -151,6 +177,7 @@ class SupabaseService {
 
   // Sisteme giriş yapmış profesyonelin danışanlarının listesini getirir
   static Future<List<Map<String, dynamic>>> getMyClients() async {
+    if (isDemo) return DemoBackend.clientConnections;
     final user = getCurrentUser();
     if (user == null) return [];
 
@@ -169,6 +196,7 @@ class SupabaseService {
 
   // Danışanın profilini güncelle (koç/diyetisyen tarafından)
   static Future<void> updateClientProfile(String clientId, Map<String, dynamic> updates) async {
+    if (isDemo) return;
     await client.from('profiles').update(updates).eq('id', clientId);
   }
 
@@ -176,6 +204,7 @@ class SupabaseService {
 
   /// Koçun belirli bir danışan için tüm antrenman planlarını getirir
   static Future<List<Map<String, dynamic>>> getWorkoutPlans(String clientId) async {
+    if (isDemo) return DemoBackend.workoutPlans;
     final user = getCurrentUser();
     if (user == null) return [];
 
@@ -199,6 +228,7 @@ class SupabaseService {
     String? description,
     String? weekDay,
   }) async {
+    if (isDemo) return {'id': 'demo', 'title': title, 'workout_exercises': []};
     final user = getCurrentUser();
     if (user == null) throw Exception('Giriş yapılmamış.');
 
@@ -225,6 +255,7 @@ class SupabaseService {
     String? notes,
     int orderIndex = 0,
   }) async {
+    if (isDemo) return;
     await client.from('workout_exercises').insert({
       'plan_id': planId,
       'name': name,
@@ -240,11 +271,13 @@ class SupabaseService {
 
   /// Egzersiz siler
   static Future<void> deleteExercise(String exerciseId) async {
+    if (isDemo) return;
     await client.from('workout_exercises').delete().eq('id', exerciseId);
   }
 
   /// Antrenman planını siler
   static Future<void> deleteWorkoutPlan(String planId) async {
+    if (isDemo) return;
     await client.from('workout_plans').delete().eq('id', planId);
   }
 
@@ -252,6 +285,7 @@ class SupabaseService {
 
   /// Danışanın beslenme planını getirir
   static Future<List<Map<String, dynamic>>> getNutritionPlan(String clientId) async {
+    if (isDemo) return DemoBackend.nutritionPlan;
     final user = getCurrentUser();
     if (user == null) return [];
 
@@ -276,6 +310,7 @@ class SupabaseService {
     double? targetFat,
     String? notes,
   }) async {
+    if (isDemo) return;
     final user = getCurrentUser();
     if (user == null) throw Exception('Giriş yapılmamış.');
 
@@ -294,6 +329,7 @@ class SupabaseService {
 
   /// Beslenme planı öğünü siler
   static Future<void> deleteNutritionPlanItem(String itemId) async {
+    if (isDemo) return;
     await client.from('nutrition_plans').delete().eq('id', itemId);
   }
 
@@ -301,6 +337,7 @@ class SupabaseService {
 
   /// Danışan için koç notlarını getirir
   static Future<List<Map<String, dynamic>>> getCoachNotes(String clientId) async {
+    if (isDemo) return DemoBackend.coachNotes;
     final user = getCurrentUser();
     if (user == null) return [];
 
@@ -320,6 +357,7 @@ class SupabaseService {
     required String note,
     String category = 'genel',
   }) async {
+    if (isDemo) return;
     final user = getCurrentUser();
     if (user == null) throw Exception('Giriş yapılmamış.');
 
@@ -333,6 +371,7 @@ class SupabaseService {
 
   /// Koç notunu siler
   static Future<void> deleteCoachNote(String noteId) async {
+    if (isDemo) return;
     await client.from('coach_notes').delete().eq('id', noteId);
   }
 
@@ -347,6 +386,18 @@ class SupabaseService {
     double? carbs,
     double? fat,
   }) async {
+    if (isDemo) {
+      return DemoBackend.addMeal(MealLog(
+        id: '',
+        name: name,
+        calories: calories,
+        createdAt: DateTime.now(),
+        insight: insight,
+        protein: protein,
+        carbs: carbs,
+        fat: fat,
+      ));
+    }
     final user = getCurrentUser();
     if (user == null) throw Exception('Kullanıcı girişi yapılmamış.');
 
@@ -368,6 +419,7 @@ class SupabaseService {
 
   /// Öğün kaydını günceller. RLS izin vermezse hata fırlatır.
   static Future<void> updateMealLog(MealLog meal) async {
+    if (isDemo) return DemoBackend.updateMeal(meal);
     final rows = await client
         .from('meal_logs')
         .update({
@@ -386,6 +438,7 @@ class SupabaseService {
 
   /// Öğün kaydını siler. RLS izin vermezse hata fırlatır.
   static Future<void> deleteMealLog(String id) async {
+    if (isDemo) return DemoBackend.deleteMeal(id);
     final rows =
         await client.from('meal_logs').delete().eq('id', id).select('id');
     if (rows.isEmpty) {
@@ -409,6 +462,12 @@ class SupabaseService {
       getMealsForUser(clientId);
 
   static Future<List<MealLog>> getMealsForUser(String userId) async {
+    if (isDemo) {
+      final n = DateTime.now();
+      return DemoBackend.mealsSince(userId, DateTime(n.year, n.month, n.day))
+          .map(DemoBackend.applyFeedback)
+          .toList();
+    }
     final response = await client
         .from('meal_logs')
         .select()
@@ -420,6 +479,11 @@ class SupabaseService {
 
   /// Son [days] günlük tüm öğünleri getirir (bugün dahil).
   static Future<List<MealLog>> getAllMeals({int days = 30}) async {
+    if (isDemo) {
+      final n = DateTime.now();
+      return DemoBackend.mealsSince(
+          DemoBackend.userId, DateTime(n.year, n.month, n.day - (days - 1)));
+    }
     final user = getCurrentUser();
     if (user == null) return [];
 
@@ -448,10 +512,134 @@ class SupabaseService {
         .toList();
   }
 
+  // ── KOÇ TAKİBİ ───────────────────────────────────────────────────────────
+
+  /// Bir kullanıcının son [days] günlük öğünleri (koç danışanını izlerken).
+  static Future<List<MealLog>> getMealsForUserSince(String userId,
+      {int days = 7}) async {
+    final n = DateTime.now();
+    final since = DateTime(n.year, n.month, n.day - (days - 1));
+    if (isDemo) {
+      return DemoBackend.mealsSince(userId, since)
+          .map(DemoBackend.applyFeedback)
+          .toList();
+    }
+    final response = await client
+        .from('meal_logs')
+        .select()
+        .eq('user_id', userId)
+        .gte('created_at', since.toUtc().toIso8601String())
+        .order('created_at', ascending: false);
+    return _parseMeals(response);
+  }
+
+  /// Birden çok danışanın son [days] günlük öğünlerini tek sorguda getirir.
+  static Future<Map<String, List<MealLog>>> getClientsMeals(
+      List<String> userIds,
+      {int days = 7}) async {
+    final result = {for (final id in userIds) id: <MealLog>[]};
+    if (userIds.isEmpty) return result;
+    final n = DateTime.now();
+    final since = DateTime(n.year, n.month, n.day - (days - 1));
+    if (isDemo) {
+      for (final id in userIds) {
+        result[id] = DemoBackend.mealsSince(id, since);
+      }
+      return result;
+    }
+    final response = await client
+        .from('meal_logs')
+        .select()
+        .inFilter('user_id', userIds)
+        .gte('created_at', since.toUtc().toIso8601String())
+        .order('created_at', ascending: false);
+    for (final row in response) {
+      final m = Map<String, dynamic>.from(row as Map);
+      result[m['user_id'].toString()]?.add(MealLog.fromMap(m));
+    }
+    return result;
+  }
+
+  /// Koçun bir öğüne yorum bırakması (boş metin yorumu siler).
+  static Future<void> setMealFeedback(String mealId, String comment) async {
+    if (isDemo) return DemoBackend.setMealFeedback(mealId, comment);
+    await client.rpc('set_meal_feedback',
+        params: {'p_meal_id': mealId, 'p_comment': comment});
+  }
+
+  /// Koç–danışan bağlantısını sonlandırır.
+  static Future<void> removeConnection(String connectionId) async {
+    if (isDemo) return;
+    await client.from('connections').delete().eq('id', connectionId);
+  }
+
+  // ── KİLO TAKİBİ ──────────────────────────────────────────────────────────
+
+  /// Kilo kayıtları (eskiden yeniye). [userId] verilmezse giriş yapan kullanıcı.
+  static Future<List<WeightEntry>> getWeightLogs({String? userId,
+      int days = 120}) async {
+    final uid = userId ?? getCurrentUser()?.id;
+    if (uid == null) return [];
+    final List<dynamic> rows;
+    if (isDemo) {
+      rows = DemoBackend.weightsFor(uid);
+    } else {
+      rows = await client
+          .from('weight_logs')
+          .select()
+          .eq('user_id', uid)
+          .gte(
+              'created_at',
+              DateTime.now()
+                  .subtract(Duration(days: days))
+                  .toUtc()
+                  .toIso8601String())
+          .order('created_at', ascending: true);
+    }
+    return rows
+        .map((e) => WeightEntry.fromMap(Map<String, dynamic>.from(e as Map)))
+        .toList();
+  }
+
+  /// Yeni kilo kaydı ekler ve profildeki güncel kiloyu günceller.
+  static Future<void> addWeightLog(double weight) async {
+    if (isDemo) return DemoBackend.addWeight(weight);
+    final user = getCurrentUser();
+    if (user == null) throw Exception('Kullanıcı girişi yapılmamış.');
+    await client
+        .from('weight_logs')
+        .insert({'user_id': user.id, 'weight': weight});
+    await client.from('profiles').update({'weight': weight}).eq('id', user.id);
+  }
+
+  /// Danışanın bağlı olduğu koç/diyetisyenin adı (yoksa null).
+  static Future<String?> getMyCoachName() async {
+    if (isDemo) return 'Dyt. Elif Kaya';
+    final user = getCurrentUser();
+    if (user == null) return null;
+    final conn = await client
+        .from('connections')
+        .select('professional_id')
+        .eq('client_id', user.id)
+        .eq('status', 'active')
+        .limit(1)
+        .maybeSingle();
+    if (conn == null) return null;
+    final prof = await client
+        .from('profiles')
+        .select('full_name, role')
+        .eq('id', conn['professional_id'])
+        .maybeSingle();
+    final name = prof?['full_name'] as String?;
+    if (name != null && name.isNotEmpty) return name;
+    return prof?['role'] == 'dietitian' ? 'Diyetisyenin' : 'Koçun';
+  }
+
   // ── KOÇ İÇERİKLERİ (DANIŞAN TARAFI) ─────────────────────────────────────
 
   /// Giriş yapmış danışana atanmış beslenme planı.
   static Future<List<Map<String, dynamic>>> getMyNutritionPlan() async {
+    if (isDemo) return DemoBackend.nutritionPlan;
     final user = getCurrentUser();
     if (user == null) return [];
     final response = await client
@@ -464,6 +652,7 @@ class SupabaseService {
 
   /// Giriş yapmış danışana yazılan koç notları.
   static Future<List<Map<String, dynamic>>> getMyCoachNotes() async {
+    if (isDemo) return DemoBackend.coachNotes;
     final user = getCurrentUser();
     if (user == null) return [];
     final response = await client
@@ -477,6 +666,7 @@ class SupabaseService {
 
   /// Giriş yapmış danışana atanmış aktif antrenman planları.
   static Future<List<Map<String, dynamic>>> getMyWorkoutPlans() async {
+    if (isDemo) return DemoBackend.workoutPlans;
     final user = getCurrentUser();
     if (user == null) return [];
     final response = await client
@@ -532,4 +722,17 @@ class DailyTotal {
     }
     return byDay.values.toList();
   }
+}
+
+/// Tek bir kilo ölçümü.
+class WeightEntry {
+  final double weight;
+  final DateTime date;
+
+  const WeightEntry({required this.weight, required this.date});
+
+  factory WeightEntry.fromMap(Map<String, dynamic> map) => WeightEntry(
+        weight: (map['weight'] as num).toDouble(),
+        date: DateTime.parse(map['created_at'].toString()).toLocal(),
+      );
 }

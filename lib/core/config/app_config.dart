@@ -24,4 +24,17 @@ class AppConfig {
   );
 
   static bool get hasGeminiKey => geminiApiKey.isNotEmpty;
+
+  /// Demo modu: 'client' veya 'coach'. Boşsa kapalı.
+  /// Örnek: flutter run -d chrome --dart-define=DEMO_MODE=coach
+  static const String demoMode = String.fromEnvironment('DEMO_MODE');
+
+  static bool get isDemo => demoMode.isNotEmpty;
+
+  /// Gizlilik politikası adresi (Play Store ve uygulama içi bağlantı).
+  static const String privacyPolicyUrl = String.fromEnvironment(
+    'PRIVACY_POLICY_URL',
+    defaultValue:
+        'https://github.com/omerkasimsah/kalori-matik/blob/main/PRIVACY.md',
+  );
 }

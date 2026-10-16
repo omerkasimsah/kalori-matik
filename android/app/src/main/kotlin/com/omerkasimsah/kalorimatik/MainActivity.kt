@@ -1,4 +1,4 @@
-package com.example.kalori_matik
+package com.omerkasimsah.kalorimatik
 
 import io.flutter.embedding.android.FlutterActivity
 
