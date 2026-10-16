@@ -27,6 +27,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _heightCtrl = TextEditingController();
   final _targetWeightLossCtrl = TextEditingController();
   final _daysCtrl = TextEditingController();
+  final _ageCtrl = TextEditingController();
+  double _activityLevel = 1.375;
   
   // Ana Hedef (Kilo Al, Ver, Koru vb.)
   String _goal = 'maintain';
@@ -50,6 +52,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _heightCtrl.dispose();
     _targetWeightLossCtrl.dispose();
     _daysCtrl.dispose();
+    _ageCtrl.dispose();
     super.dispose();
   }
 
@@ -63,6 +66,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           _weightCtrl.text = (data['weight'] ?? '').toString();
           _heightCtrl.text = (data['height'] ?? '').toString();
           _goal = data['goal'] ?? 'maintain';
+          _ageCtrl.text = (data['age'] ?? '').toString();
+          _activityLevel =
+              (data['activity_level'] as num?)?.toDouble() ?? 1.375;
           _targetWeightLossCtrl.text =
               (data['target_weight_loss'] ?? '').toString();
           _daysCtrl.text = (data['target_days'] ?? '').toString();
@@ -72,22 +78,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (mounted) setState(() => _isLoading = false);
   }
 
-  // Kullanıcı profili düzenlerken anlık olarak (canlı) yeni TDEE limitini önizlemek için
-  // Mifflin-St Jeor formülünü mevcut yazılmış veriler üzerinden tekrar lokal hesaplar
-  int _computeTdee() {
-    final weight =
-        double.tryParse(_weightCtrl.text) ?? (_profile?['weight'] as num?)?.toDouble() ?? 70;
-    final height =
-        double.tryParse(_heightCtrl.text) ?? (_profile?['height'] as num?)?.toDouble() ?? 170;
-    final age = (_profile?['age'] as num?)?.toInt() ?? 25;
-    final isMale = (_profile?['gender'] ?? 'Erkek') == 'Erkek';
-    final activityLevel =
-        (_profile?['activity_level'] as num?)?.toDouble() ?? 1.375;
-
-    final bmr = isMale
-        ? (10 * weight + 6.25 * height - 5 * age + 5)
-        : (10 * weight + 6.25 * height - 5 * age - 161);
-    return (bmr * activityLevel).round();
+  // Formdaki güncel değerlerle günlük hedefi hesaplar (önizleme ve kayıt aynı mantık).
+  int _computeTarget({required String goal, double? lossKg, int? days}) {
+    return CalorieCalculator.dailyTargetFor(
+      weight: double.tryParse(_weightCtrl.text.replaceAll(',', '.')) ??
+          (_profile?['weight'] as num?)?.toDouble() ??
+          70,
+      height: double.tryParse(_heightCtrl.text.replaceAll(',', '.')) ??
+          (_profile?['height'] as num?)?.toDouble() ??
+          170,
+      age: int.tryParse(_ageCtrl.text) ?? (_profile?['age'] as num?)?.toInt() ?? 25,
+      isMale: (_profile?['gender'] ?? 'Erkek') == 'Erkek',
+      activityLevel: _activityLevel,
+      goal: goal,
+      targetWeightLoss: lossKg,
+      targetDays: days,
+    );
   }
 
   // Kilo verme hedefine göre önerilen günlük kalori
@@ -96,11 +102,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final kg = double.tryParse(_targetWeightLossCtrl.text);
     final days = int.tryParse(_daysCtrl.text);
     if (kg == null || days == null || kg <= 0 || days <= 0) return null;
-    return CalorieCalculator.calculateWeightLossCalorie(
-      tdee: _computeTdee(),
-      targetWeightLoss: kg,
-      days: days,
-    );
+    return _computeTarget(goal: 'lose', lossKg: kg, days: days);
   }
 
   // Edilen form bilgilerini Supabase API aracılığıyla kalıcı veritabanına aktarma
@@ -110,43 +112,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (_profile == null) return;
     setState(() => _isSaving = true);
     try {
-      final weight = double.tryParse(_weightCtrl.text) ?? (_profile!['weight'] as num?)?.toDouble() ?? 70;
-      final height = double.tryParse(_heightCtrl.text) ?? (_profile!['height'] as num?)?.toDouble() ?? 170;
-      final age = _profile!['age'] ?? 25;
-      final isMale = (_profile!['gender'] ?? 'Erkek') == 'Erkek';
-      final activityLevel =
-          (_profile!['activity_level'] as num?)?.toDouble() ?? 1.375;
-
-      final bmr = isMale
-          ? (10 * weight + 6.25 * height - 5 * age + 5)
-          : (10 * weight + 6.25 * height - 5 * age - 161);
-      int tdee = (bmr * activityLevel).round();
-
-      // Kilo verme hedefi girildiyse hassas hesap yap
-      final targetKg = double.tryParse(_targetWeightLossCtrl.text);
-      final targetDays = int.tryParse(_daysCtrl.text);
-
-      if (_goal == 'lose' &&
-          targetKg != null &&
-          targetKg > 0 &&
-          targetDays != null &&
-          targetDays > 0) {
-        tdee = CalorieCalculator.calculateWeightLossCalorie(
-          tdee: tdee,
-          targetWeightLoss: targetKg,
-          days: targetDays,
-        );
-      } else if (_goal == 'lose') {
-        tdee -= 500;
-      } else if (_goal == 'gain') {
-        tdee += 500;
+      final weight = double.tryParse(_weightCtrl.text.replaceAll(',', '.'));
+      final height = double.tryParse(_heightCtrl.text.replaceAll(',', '.'));
+      final age = int.tryParse(_ageCtrl.text);
+      if (weight == null || weight < 30 || weight > 300 ||
+          height == null || height < 100 || height > 250 ||
+          age == null || age < 13 || age > 100) {
+        throw const FormatException(
+            'Kilo 30–300 kg, boy 100–250 cm, yaş 13–100 arasında olmalı.');
       }
+
+      final targetKg = double.tryParse(_targetWeightLossCtrl.text.replaceAll(',', '.'));
+      final targetDays = int.tryParse(_daysCtrl.text);
+      final tdee = _computeTarget(goal: _goal, lossKg: targetKg, days: targetDays);
 
       // Mevcut profil verisiyle merge et — kritik alanlar (kalori_id, role) korunur
       final updatedProfile = {
         ..._profile!,                  // mevcut tüm alanları koru
         'weight': weight,
         'height': height,
+        'age': age,
+        'activity_level': _activityLevel,
         'goal': _goal,
         'daily_tdee': tdee,
         'target_weight_loss': (_goal == 'lose' && targetKg != null) ? targetKg : null,
@@ -155,9 +141,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
       await SupabaseService.saveProfile(updatedProfile);
 
-      // Provider'ı güncelle
-      ref.read(dailyBudgetProvider.notifier).state = tdee;
-      ref.read(mealLogsProvider.notifier).loadUserBudget();
+      // Profil provider'ını yenile → günlük hedef, makrolar ve su hedefi güncellenir
+      ref.invalidate(userProfileProvider);
 
       if (mounted) {
         setState(() {
@@ -167,20 +152,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Profil güncellendi ✅'),
-            backgroundColor: AppColors.primary,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Kayıt hatası: ${e.toString()}')),
+          SnackBar(
+            content: Text(
+              e is FormatException ? e.message : 'Profil kaydedilemedi. Tekrar deneyin.',
+              style: const TextStyle(color: AppColors.danger),
+            ),
+          ),
         );
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
   }
+
+  static final _activityLevels = <double, String>{
+    1.2: 'Hareketsiz (masa başı)',
+    1.375: 'Hafif aktif (haftada 1-3 gün)',
+    1.55: 'Orta aktif (haftada 3-5 gün)',
+    1.725: 'Aktif (haftada 6-7 gün)',
+    1.9: 'Çok aktif (ağır iş / günde 2 antrenman)',
+  };
 
   String _goalLabel(String? goal) {
     switch (goal) {
@@ -254,11 +251,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               width: 64,
                               height: 64,
                               decoration: BoxDecoration(
-                                color: Colors.white.withAlpha(40),
+                                color: AppColors.background.withAlpha(30),
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(Icons.person,
-                                  color: Colors.white, size: 34),
+                                  color: AppColors.background, size: 34),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
@@ -268,14 +265,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   Text(
                                     user?.email?.split('@').first ?? 'Kullanıcı',
                                     style: const TextStyle(
-                                        color: Colors.white,
+                                        color: AppColors.background,
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold),
                                   ),
                                   Text(
                                     user?.email ?? '',
                                     style: TextStyle(
-                                        color: Colors.white.withAlpha(180),
+                                        color: AppColors.background.withAlpha(180),
                                         fontSize: 11),
                                   ),
                                 ],
@@ -301,10 +298,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 10),
                               decoration: BoxDecoration(
-                                color: Colors.white.withAlpha(30),
+                                color: AppColors.background.withAlpha(25),
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
-                                    color: Colors.white.withAlpha(80)),
+                                    color: AppColors.background.withAlpha(60)),
                               ),
                               child: Row(
                                 mainAxisAlignment:
@@ -312,13 +309,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 children: [
                                   Row(
                                     children: [
-                                      const Icon(Icons.qr_code,
-                                          color: Colors.white70, size: 16),
+                                      Icon(Icons.qr_code,
+                                          color: AppColors.background.withAlpha(190), size: 16),
                                       const SizedBox(width: 8),
-                                      const Text(
+                                      Text(
                                         'KaloriID',
                                         style: TextStyle(
-                                            color: Colors.white70,
+                                            color: AppColors.background.withAlpha(190),
                                             fontSize: 12,
                                             fontWeight: FontWeight.bold),
                                       ),
@@ -326,7 +323,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                       Text(
                                         _profile!['kalori_id'].toString(),
                                         style: const TextStyle(
-                                          color: Colors.white,
+                                          color: AppColors.background,
                                           fontSize: 18,
                                           fontWeight: FontWeight.w900,
                                           letterSpacing: 3,
@@ -334,8 +331,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                       ),
                                     ],
                                   ),
-                                  const Icon(Icons.copy,
-                                      color: Colors.white60, size: 16),
+                                  Icon(Icons.copy,
+                                      color: AppColors.background.withAlpha(160), size: 16),
                                 ],
                               ),
                             ),
@@ -351,14 +348,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.cardSurface,
                       borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                            color: Colors.black.withAlpha(8),
-                            blurRadius: 12,
-                            offset: const Offset(0, 3))
-                      ],
                     ),
                     child: Row(
                       children: [
@@ -400,14 +391,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.cardSurface,
                       borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                            color: Colors.black.withAlpha(8),
-                            blurRadius: 12,
-                            offset: const Offset(0, 3))
-                      ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -447,6 +432,36 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 ),
                               ),
                             ],
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _ageCtrl,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly
+                            ],
+                            onChanged: (_) => setState(() {}),
+                            decoration: const InputDecoration(
+                              labelText: 'Yaş',
+                              prefixIcon: Icon(Icons.cake_outlined),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<double>(
+                            value: _activityLevels.containsKey(_activityLevel)
+                                ? _activityLevel
+                                : 1.375,
+                            dropdownColor: AppColors.surface,
+                            decoration: const InputDecoration(
+                              labelText: 'Aktivite seviyesi',
+                              prefixIcon: Icon(Icons.directions_run),
+                            ),
+                            items: _activityLevels.entries
+                                .map((e) => DropdownMenuItem(
+                                    value: e.key, child: Text(e.value)))
+                                .toList(),
+                            onChanged: (v) =>
+                                setState(() => _activityLevel = v ?? 1.375),
                           ),
                           const SizedBox(height: 16),
                           const Text('Hedef',
@@ -490,7 +505,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                           height: 18,
                                           child: CircularProgressIndicator(
                                               strokeWidth: 2,
-                                              color: Colors.white))
+                                              color: AppColors.background))
                                       : const Text('Kaydet'),
                                 ),
                               ),
@@ -518,6 +533,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               value:
                                   '${(_profile?['weight'] as num?)?.toStringAsFixed(1) ?? '-'} kg'),
                           _ProfileRow(
+                              icon: Icons.directions_run,
+                              label: 'Aktivite',
+                              value: _activityLevels[(_profile?['activity_level'] as num?)?.toDouble()]
+                                      ?.split(' (')
+                                      .first ??
+                                  '-'),
+                          _ProfileRow(
                               icon: Icons.flag_outlined,
                               label: 'Hedef',
                               value: _goalLabel(_profile?['goal'])),
@@ -542,6 +564,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   // ── Çıkış Yap ──────────────────────────────────────────
                   OutlinedButton.icon(
                     onPressed: () async {
+                      final ok = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Çıkış yapılsın mı?'),
+                          actions: [
+                            TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: const Text('Vazgeç')),
+                            TextButton(
+                                onPressed: () => Navigator.pop(ctx, true),
+                                child: const Text('Çıkış Yap',
+                                    style: TextStyle(color: AppColors.danger))),
+                          ],
+                        ),
+                      );
+                      if (ok != true) return;
                       await SupabaseService.signOut();
                       if (context.mounted) context.go('/login');
                     },
@@ -633,7 +671,7 @@ class _WeightLossTargetCard extends StatelessWidget {
                     hintText: 'ör. 5',
                     suffixText: 'kg',
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: AppColors.surface,
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide: BorderSide.none),
@@ -661,7 +699,7 @@ class _WeightLossTargetCard extends StatelessWidget {
                     hintText: 'ör. 60',
                     suffixText: 'gün',
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: AppColors.surface,
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide: BorderSide.none),
@@ -694,12 +732,12 @@ class _WeightLossTargetCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Icon(Icons.bolt,
-                      color: Colors.white, size: 18),
+                      color: AppColors.background, size: 18),
                   const SizedBox(width: 6),
                   Text(
                     'Önerilen günlük kalori: $previewCalorie kcal',
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: AppColors.background,
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
                     ),
@@ -753,12 +791,12 @@ class _WeightLossInfoCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Row(
+          const Row(
             children: [
-              const Icon(Icons.trending_down,
+              Icon(Icons.trending_down,
                   color: AppColors.primary, size: 18),
-              const SizedBox(width: 8),
-              const Text(
+              SizedBox(width: 8),
+              Text(
                 'Kilo Verme Planın',
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
@@ -814,7 +852,7 @@ class _InfoChip extends StatelessWidget {
     final chip = Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: AppColors.primary.withAlpha(30)),
       ),
@@ -904,7 +942,7 @@ class _GoalSelector extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isSelected
                       ? AppColors.primary.withAlpha(30)
-                      : Colors.grey.shade100,
+                      : AppColors.surface,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                       color: isSelected

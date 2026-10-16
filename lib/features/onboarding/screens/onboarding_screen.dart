@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
@@ -68,16 +70,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       );
     }
 
-    // 2. ADIM: Eşsiz Kriptografik Kimlik Üretimi (KaloriID)
+    // 2. ADIM: Eşsiz KaloriID üretimi (karışabilecek 0/O, 1/I harfleri hariç).
+    // Veritabanında trigger varsa o da kimlik atayabilir; unique kısıtı çakışmayı engeller.
     String? kaloriId;
     if (_role == 'client') {
-      final ms = DateTime.now().microsecondsSinceEpoch.toString();
-      kaloriId = (ms + _weight.toString() + _age.toString())
-          .hashCode
-          .toRadixString(36)
-          .toUpperCase()
-          .padRight(6, 'X')
-          .substring(0, 6);
+      const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      final rnd = Random.secure();
+      kaloriId = List.generate(6, (_) => alphabet[rnd.nextInt(alphabet.length)])
+          .join();
     }
 
     // 3. ADIM: Veritabanına Yansıtma (Persistence)
@@ -102,9 +102,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Profil kaydedilemedi: $e')),
+          const SnackBar(
+            content: Text(
+                'Profil kaydedilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.',
+                style: TextStyle(color: AppColors.danger)),
+          ),
         );
       }
+      return;
     }
 
     if (!mounted) return;
@@ -189,7 +194,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           children: [
             LinearProgressIndicator(
               value: (_currentIndex + 1) / 6,
-              backgroundColor: Colors.grey.shade200,
+              backgroundColor: AppColors.cardSurface,
               color: AppColors.primary,
               minHeight: 8,
             ),
@@ -455,7 +460,7 @@ class _SelectionCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected ? AppColors.primary.withAlpha(50) : AppColors.surface,
           border: Border.all(
-            color: isSelected ? AppColors.primary : Colors.grey.shade300,
+            color: isSelected ? AppColors.primary : AppColors.divider,
             width: 2,
           ),
           borderRadius: BorderRadius.circular(16),
@@ -463,12 +468,12 @@ class _SelectionCard extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 48, color: isSelected ? AppColors.primary : Colors.grey),
+            Icon(icon, size: 48, color: isSelected ? AppColors.primary : AppColors.textSecondary),
             const SizedBox(height: 8),
             Text(
               title,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: isSelected ? AppColors.primary : Colors.grey.shade700,
+                    color: isSelected ? AppColors.primary : AppColors.textSecondary,
                   ),
             ),
           ],
@@ -502,7 +507,7 @@ class _ListOption extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             border: Border.all(
-              color: isSelected ? AppColors.primary : Colors.grey.shade300,
+              color: isSelected ? AppColors.primary : AppColors.divider,
               width: 2,
             ),
             borderRadius: BorderRadius.circular(12),
@@ -512,7 +517,7 @@ class _ListOption extends StatelessWidget {
             children: [
               Icon(
                 isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                color: isSelected ? AppColors.primary : Colors.grey,
+                color: isSelected ? AppColors.primary : AppColors.textSecondary,
               ),
               const SizedBox(width: 16),
               Expanded(

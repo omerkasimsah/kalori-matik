@@ -5,151 +5,188 @@ import '../models/meal_log.dart';
 class MealListItem extends StatelessWidget {
   final MealLog meal;
 
-  const MealListItem({super.key, required this.meal});
+  /// Dokunulduğunda (ör. düzenleme) çağrılır.
+  final VoidCallback? onTap;
 
-  // Metin Madenciliği (Text Mining) Heuristic Modeli
-  // Sistem API'den veya kullanıcıdan gelen yemek adını analiz edip 
-  // ilgili kategorideki görsel avatara (Emoji) eşleştirerek ikon atar.
+  /// Verilirse öğün sola kaydırılarak silinebilir.
+  final VoidCallback? onDelete;
+
+  const MealListItem({
+    super.key,
+    required this.meal,
+    this.onTap,
+    this.onDelete,
+  });
+
+  // Yemek adını analiz edip ilgili kategorideki emojiyi eşleştirir.
   String get _emoji {
     final name = meal.name.toLowerCase();
-    if (name.contains('tavuk') || name.contains('et') || name.contains('kıyma')) return '🍗';
-    if (name.contains('salata') || name.contains('sebze')) return '🥗';
-    if (name.contains('meyve') || name.contains('elma') || name.contains('muz')) return '🍎';
-    if (name.contains('makarna') || name.contains('pilav') || name.contains('pirinç')) return '🍝';
-    if (name.contains('ekmek') || name.contains('tost') || name.contains('sandviç')) return '🍞';
-    if (name.contains('yumurta')) return '🍳';
-    if (name.contains('çorba')) return '🍲';
-    if (name.contains('pizza')) return '🍕';
-    if (name.contains('hamburger') || name.contains('burger')) return '🍔';
-    if (name.contains('kahve') || name.contains('çay')) return '☕';
-    if (name.contains('kahvaltı')) return '🍳';
-    if (name.contains('balık')) return '🐟';
+    bool has(List<String> words) => words.any(name.contains);
+    if (has(['yumurta', 'omlet', 'menemen', 'kahvaltı'])) return '🍳';
+    if (has(['tavuk', 'piliç'])) return '🍗';
+    if (has(['köfte', 'kebap', 'kıyma', 'biftek', 'döner', 'et '])) return '🥩';
+    if (has(['balık', 'somon', 'ton '])) return '🐟';
+    if (has(['salata', 'sebze', 'brokoli'])) return '🥗';
+    if (has(['çorba'])) return '🍲';
+    if (has(['pizza'])) return '🍕';
+    if (has(['burger'])) return '🍔';
+    if (has(['makarna', 'spagetti', 'erişte'])) return '🍝';
+    if (has(['pilav', 'pirinç', 'bulgur'])) return '🍚';
+    if (has(['ekmek', 'tost', 'sandviç', 'simit', 'poğaça'])) return '🥪';
+    if (has(['meyve', 'elma', 'muz', 'portakal', 'çilek'])) return '🍎';
+    if (has(['yoğurt', 'süt', 'ayran', 'peynir'])) return '🥛';
+    if (has(['tatlı', 'pasta', 'kek', 'çikolata', 'baklava', 'dondurma'])) {
+      return '🍰';
+    }
+    if (has(['kahve', 'çay'])) return '☕';
     return '🍽️';
   }
 
   @override
   Widget build(BuildContext context) {
-    // Yapay zeka veya veri tabanı tarafından besin makro değerleri atanmışsa etiketleri görünür kılar
-    final hasMacros = meal.protein != null || meal.carbs != null || meal.fat != null;
+    final hasMacros =
+        meal.protein != null || meal.carbs != null || meal.fat != null;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    final card = Material(
+      color: AppColors.cardSurface,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(8),
-            blurRadius: 12,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Emoji avatar
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withAlpha(20),
-                borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withAlpha(20),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Text(_emoji, style: const TextStyle(fontSize: 26)),
+                ),
               ),
-              child: Center(
-                child: Text(_emoji, style: const TextStyle(fontSize: 26)),
-              ),
-            ),
-            const SizedBox(width: 12),
-            // İçerik
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    meal.name,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (meal.insight != null) ...[
-                    const SizedBox(height: 3),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      meal.insight!,
+                      meal.name,
                       style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                          fontStyle: FontStyle.italic),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
+                    if (meal.insight != null && meal.insight!.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        meal.insight!,
+                        style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                            fontStyle: FontStyle.italic),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    if (hasMacros) ...[
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: [
+                          if (meal.protein != null)
+                            _MacroBadge(
+                                label: 'P',
+                                value: '${meal.protein!.toStringAsFixed(0)}g',
+                                color: AppColors.protein),
+                          if (meal.carbs != null)
+                            _MacroBadge(
+                                label: 'K',
+                                value: '${meal.carbs!.toStringAsFixed(0)}g',
+                                color: AppColors.carbs),
+                          if (meal.fat != null)
+                            _MacroBadge(
+                                label: 'Y',
+                                value: '${meal.fat!.toStringAsFixed(0)}g',
+                                color: AppColors.fat),
+                        ],
+                      ),
+                    ],
                   ],
-                  if (hasMacros) ...[
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        if (meal.protein != null)
-                          _MacroBadge(
-                              label: 'P',
-                              value: '${meal.protein!.toStringAsFixed(0)}g',
-                              color: const Color(0xFF3498DB)),
-                        if (meal.carbs != null) ...[
-                          const SizedBox(width: 6),
-                          _MacroBadge(
-                              label: 'K',
-                              value: '${meal.carbs!.toStringAsFixed(0)}g',
-                              color: const Color(0xFFF39C12)),
-                        ],
-                        if (meal.fat != null) ...[
-                          const SizedBox(width: 6),
-                          _MacroBadge(
-                              label: 'Y',
-                              value: '${meal.fat!.toStringAsFixed(0)}g',
-                              color: const Color(0xFFE74C3C)),
-                        ],
-                      ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '${meal.calories}',
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 18,
                     ),
-                  ],
+                  ),
+                  const Text(
+                    'kcal',
+                    style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    meal.time,
+                    style: const TextStyle(
+                        color: AppColors.textSecondary, fontSize: 11),
+                  ),
                 ],
               ),
-            ),
-            const SizedBox(width: 8),
-            // Kalori + saat
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '-${meal.calories}',
-                  style: const TextStyle(
-                    color: AppColors.danger,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 18,
-                  ),
-                ),
-                const Text(
-                  'kcal',
-                  style: TextStyle(
-                      color: AppColors.danger,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  meal.time,
-                  style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 11),
-                ),
-              ],
-            ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final content = Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: card,
+    );
+
+    if (onDelete == null) return content;
+
+    return Dismissible(
+      key: ValueKey('meal-${meal.id}'),
+      direction: DismissDirection.endToStart,
+      onDismissed: (_) => onDelete!(),
+      background: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        alignment: Alignment.centerRight,
+        decoration: BoxDecoration(
+          color: AppColors.danger.withAlpha(40),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Sil',
+                style: TextStyle(
+                    color: AppColors.danger, fontWeight: FontWeight.w700)),
+            SizedBox(width: 8),
+            Icon(Icons.delete_outline, color: AppColors.danger),
           ],
         ),
       ),
+      child: content,
     );
   }
 }
@@ -167,15 +204,13 @@ class _MacroBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withAlpha(20),
+        color: color.withAlpha(30),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         '$label: $value',
-        style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-            color: color),
+        style:
+            TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color),
       ),
     );
   }

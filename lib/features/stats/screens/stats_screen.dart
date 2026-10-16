@@ -1,206 +1,262 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
 import '../../../core/services/supabase_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../home/providers/calorie_provider.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class StatsScreen extends ConsumerStatefulWidget {
+/// Seçili aralık (gün).
+final statsRangeProvider = StateProvider<int>((ref) => 7);
+
+/// Seçili aralığın günlük toplamları. Bugünkü öğünler değiştikçe yenilenir.
+final dailyTotalsProvider = FutureProvider<List<DailyTotal>>((ref) async {
+  ref.watch(currentUserIdProvider);
+  ref.watch(caloriesConsumedProvider);
+  final days = ref.watch(statsRangeProvider);
+  return SupabaseService.getDailyTotals(days: days);
+});
+
+class StatsScreen extends ConsumerWidget {
   const StatsScreen({super.key});
 
-  @override
-  ConsumerState<StatsScreen> createState() => _StatsScreenState();
-}
-
-class _StatsScreenState extends ConsumerState<StatsScreen> {
-  // Haftalık Kalori Geçmişi Veri Modeli
-  List<Map<String, dynamic>> _weeklyData = [];
-  // Supabase'den ilk yükleme için ağ iletişim bayrağı
-  bool _isLoading = true;
+  static const _weekDays = ['Pt', 'Sa', 'Ça', 'Pe', 'Cu', 'Ct', 'Pz'];
 
   @override
-  void initState() {
-    super.initState();
-    // Grafiklere çizilecek analiz datasını çekmeye başlar
-    _loadData();
-  }
-
-  Future<void> _loadData() async {
-    setState(() => _isLoading = true);
-    try {
-      final data = await SupabaseService.getWeeklyCalories();
-      if (mounted) setState(() => _weeklyData = data);
-    } catch (_) {}
-    if (mounted) setState(() => _isLoading = false);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Kapsamlı (Global) Riverpod durumlarının dinlenmesi
+  Widget build(BuildContext context, WidgetRef ref) {
     final budget = ref.watch(dailyBudgetProvider);
-    final consumed = ref.watch(caloriesConsumedProvider);
-    final mealsState = ref.watch(mealLogsProvider);
-
-    // Günlük makro hedefleri için veri toplama (Aggregate) algoritması
-    double totalProtein = 0, totalCarbs = 0, totalFat = 0;
-    for (final m in mealsState.meals) {
-      totalProtein += m.protein ?? 0;
-      totalCarbs += m.carbs ?? 0;
-      totalFat += m.fat ?? 0;
-    }
-    final totalMacros = totalProtein + totalCarbs + totalFat;
+    final range = ref.watch(statsRangeProvider);
+    final totalsAsync = ref.watch(dailyTotalsProvider);
+    final macros = ref.watch(macrosConsumedProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(color: AppColors.primary))
-            : RefreshIndicator(
-                onRefresh: _loadData,
-                color: AppColors.primary,
-                child: ListView(
-                  padding: const EdgeInsets.all(20),
-                  children: [
-                    // ── Başlık ────────────────────────────────────────────
-                    const Text(
-                      'İstatistikler',
-                      style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.textPrimary),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Sağlıklı ilerlemenizi takip edin',
-                      style: TextStyle(
-                          color: AppColors.textSecondary, fontSize: 13),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // ── Özet kartlar ─────────────────────────────────────
-                    Row(
+        child: RefreshIndicator(
+          onRefresh: () => ref.refresh(dailyTotalsProvider.future),
+          color: AppColors.primary,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 110),
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: _StatCard(
-                            label: 'Günlük Limit',
-                            value: '$budget',
-                            unit: 'kcal',
-                            icon: Icons.flag_outlined,
-                            color: AppColors.primary,
-                          ),
+                        Text(
+                          'İstatistikler',
+                          style: TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.textPrimary),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _StatCard(
-                            label: 'Bugün Harcanan',
-                            value: '$consumed',
-                            unit: 'kcal',
-                            icon: Icons.local_fire_department_outlined,
-                            color: AppColors.danger,
-                          ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Sağlıklı ilerlemeni takip et',
+                          style: TextStyle(
+                              color: AppColors.textSecondary, fontSize: 13),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _StatCard(
-                            label: 'Bugün Kalan',
-                            value: '${(budget - consumed).clamp(0, budget)}',
-                            unit: 'kcal',
-                            icon: Icons.savings_outlined,
-                            color: budget - consumed > 0
-                                ? AppColors.primary
-                                : AppColors.warning,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _StatCard(
-                            label: 'Öğün Sayısı',
-                            value: '${mealsState.meals.length}',
-                            unit: 'öğün',
-                            icon: Icons.restaurant_outlined,
-                            color: const Color(0xFF9B59B6),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 28),
-
-                    // ── Haftalık Kalori Grafiği ───────────────────────────
-                    _SectionTitle(title: 'Haftalık Kalori'),
-                    const SizedBox(height: 12),
-                    _WeeklyBarChart(weeklyData: _weeklyData, budget: budget),
-
-                    const SizedBox(height: 28),
-
-                    // ── Bugünkü Makro Dağılımı ───────────────────────────
-                    _SectionTitle(title: 'Bugünkü Makrolar'),
-                    const SizedBox(height: 12),
-                    if (totalMacros == 0)
-                      _EmptyMacroCard()
-                    else
-                      _MacroPieCard(
-                        protein: totalProtein,
-                        carbs: totalCarbs,
-                        fat: totalFat,
-                      ),
-
-                    const SizedBox(height: 80),
-                  ],
+                  ),
+                  TextButton.icon(
+                    onPressed: () => context.push('/history'),
+                    icon: const Icon(Icons.history_rounded, size: 18),
+                    label: const Text('Geçmiş'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              SegmentedButton<int>(
+                segments: const [
+                  ButtonSegment(value: 7, label: Text('7 gün')),
+                  ButtonSegment(value: 30, label: Text('30 gün')),
+                ],
+                selected: {range},
+                showSelectedIcon: false,
+                onSelectionChanged: (s) =>
+                    ref.read(statsRangeProvider.notifier).state = s.first,
+                style: ButtonStyle(
+                  backgroundColor: MaterialStateProperty.resolveWith((states) =>
+                      states.contains(MaterialState.selected)
+                          ? AppColors.primary
+                          : AppColors.cardSurface),
+                  foregroundColor: MaterialStateProperty.resolveWith((states) =>
+                      states.contains(MaterialState.selected)
+                          ? AppColors.background
+                          : AppColors.textPrimary),
+                  side: const MaterialStatePropertyAll(BorderSide.none),
                 ),
               ),
+              const SizedBox(height: 20),
+              totalsAsync.when(
+                loading: () => const Padding(
+                  padding: EdgeInsets.all(48),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (_, __) => _InfoCard(
+                  child: Column(
+                    children: [
+                      const Text('Veriler yüklenemedi',
+                          style: TextStyle(color: AppColors.textSecondary)),
+                      TextButton(
+                        onPressed: () => ref.invalidate(dailyTotalsProvider),
+                        child: const Text('Tekrar dene'),
+                      ),
+                    ],
+                  ),
+                ),
+                data: (totals) => _StatsBody(
+                  totals: totals,
+                  budget: budget,
+                  weekDays: _weekDays,
+                ),
+              ),
+              const SizedBox(height: 28),
+              const _SectionTitle(title: 'Bugünkü Makrolar'),
+              const SizedBox(height: 12),
+              if (macros.protein + macros.carbs + macros.fat == 0)
+                const _InfoCard(
+                  child: Text('Bugün henüz makro bilgisi olan öğün yok',
+                      style: TextStyle(color: AppColors.textSecondary)),
+                )
+              else
+                _MacroPieCard(
+                  protein: macros.protein,
+                  carbs: macros.carbs,
+                  fat: macros.fat,
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
-// ── Haftalık Bar Grafiği ──────────────────────────────────────────────────────
-
-class _WeeklyBarChart extends StatelessWidget {
-  final List<Map<String, dynamic>> weeklyData;
+class _StatsBody extends StatelessWidget {
+  final List<DailyTotal> totals;
   final int budget;
+  final List<String> weekDays;
 
-  const _WeeklyBarChart({required this.weeklyData, required this.budget});
+  const _StatsBody({
+    required this.totals,
+    required this.budget,
+    required this.weekDays,
+  });
 
   @override
   Widget build(BuildContext context) {
-    if (weeklyData.isEmpty) {
-      return Container(
-        height: 200,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: const Center(
-          child: Text('Henüz veri yok',
-              style: TextStyle(color: AppColors.textSecondary)),
-        ),
-      );
+    final logged = totals.where((t) => t.mealCount > 0).toList();
+    final avg = logged.isEmpty
+        ? 0
+        : (logged.fold<int>(0, (s, t) => s + t.calories) / logged.length)
+            .round();
+    // Hedefin ±%10'u içinde kalınan günler
+    final onTarget = logged
+        .where((t) => t.calories >= budget * 0.9 && t.calories <= budget * 1.1)
+        .length;
+
+    // Seri: bugünden geriye kesintisiz kayıt girilen gün sayısı
+    // (bugün henüz kayıt yoksa dünden başlar).
+    var streak = 0;
+    for (var i = totals.length - 1; i >= 0; i--) {
+      if (totals[i].mealCount > 0) {
+        streak++;
+      } else if (i != totals.length - 1) {
+        break;
+      }
     }
 
-    // Grafiğin Y-Ekseni ölçeklemesi için en yüksek değeri bulma algoritması (Peak Detection)
-    final maxVal = weeklyData
-            .map((e) => (e['calories'] as int).toDouble())
-            .fold(0.0, (a, b) => a > b ? a : b)
-        .clamp(budget.toDouble(), double.infinity);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _StatCard(
+                label: 'Günlük Ortalama',
+                value: '$avg',
+                unit: 'kcal',
+                icon: Icons.functions_rounded,
+                color: AppColors.secondary,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _StatCard(
+                label: 'Hedefte Kalınan',
+                value: '$onTarget/${logged.length}',
+                unit: 'gün',
+                icon: Icons.flag_outlined,
+                color: AppColors.primary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _StatCard(
+                label: 'Kayıt Serisi',
+                value: '$streak',
+                unit: 'gün 🔥',
+                icon: Icons.local_fire_department_outlined,
+                color: AppColors.warning,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _StatCard(
+                label: 'Günlük Hedef',
+                value: '$budget',
+                unit: 'kcal',
+                icon: Icons.track_changes_rounded,
+                color: AppColors.carbs,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 28),
+        _SectionTitle(
+            title: totals.length <= 7 ? 'Haftalık Kalori' : 'Aylık Kalori'),
+        const SizedBox(height: 12),
+        _CalorieBarChart(totals: totals, budget: budget, weekDays: weekDays),
+      ],
+    );
+  }
+}
+
+// ── Kalori Bar Grafiği ────────────────────────────────────────────────────────
+
+class _CalorieBarChart extends StatelessWidget {
+  final List<DailyTotal> totals;
+  final int budget;
+  final List<String> weekDays;
+
+  const _CalorieBarChart({
+    required this.totals,
+    required this.budget,
+    required this.weekDays,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final maxVal = totals
+        .map((e) => e.calories.toDouble())
+        .fold(budget.toDouble(), (a, b) => a > b ? a : b);
+    final isWeek = totals.length <= 7;
 
     return Container(
       height: 240,
       padding: const EdgeInsets.fromLTRB(8, 20, 8, 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.cardSurface,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withAlpha(8),
-              blurRadius: 12,
-              offset: const Offset(0, 3))
-        ],
       ),
       child: BarChart(
         BarChartData(
@@ -208,68 +264,84 @@ class _WeeklyBarChart extends StatelessWidget {
           gridData: FlGridData(
             show: true,
             drawVerticalLine: false,
-            horizontalInterval: budget / 2,
-            getDrawingHorizontalLine: (_) => FlLine(
-              color: Colors.grey.shade100,
-              strokeWidth: 1,
-            ),
+            horizontalInterval: budget > 0 ? budget / 2 : 500,
+            getDrawingHorizontalLine: (_) =>
+                const FlLine(color: AppColors.divider, strokeWidth: 1),
           ),
           borderData: FlBorderData(show: false),
+          barTouchData: BarTouchData(
+            touchTooltipData: BarTouchTooltipData(
+              getTooltipColor: (_) => AppColors.surface,
+              getTooltipItem: (group, _, rod, __) {
+                final t = totals[group.x];
+                return BarTooltipItem(
+                  '${t.date.day}.${t.date.month}\n${t.calories} kcal',
+                  const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12),
+                );
+              },
+            ),
+          ),
           titlesData: FlTitlesData(
-            leftTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false)),
-            topTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false)),
+            leftTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
                 reservedSize: 28,
                 getTitlesWidget: (value, meta) {
                   final idx = value.toInt();
-                  if (idx < 0 || idx >= weeklyData.length)
-                    return const Text('');
-                  return Text(
-                    weeklyData[idx]['date'] as String,
-                    style: const TextStyle(
-                        fontSize: 9, color: AppColors.textSecondary),
+                  if (idx < 0 || idx >= totals.length) {
+                    return const SizedBox.shrink();
+                  }
+                  final d = totals[idx].date;
+                  // 30 günlük görünümde her 5 günde bir etiket
+                  if (!isWeek && (totals.length - 1 - idx) % 5 != 0) {
+                    return const SizedBox.shrink();
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      isWeek ? weekDays[d.weekday - 1] : '${d.day}',
+                      style: const TextStyle(
+                          fontSize: 10, color: AppColors.textSecondary),
+                    ),
                   );
                 },
               ),
             ),
           ),
-          barGroups: weeklyData.asMap().entries.map((e) {
-            final cal = (e.value['calories'] as int).toDouble();
-            Color barColor;
+          barGroups: totals.asMap().entries.map((e) {
+            final cal = e.value.calories.toDouble();
+            final Color barColor;
             if (cal == 0) {
-              barColor = Colors.grey.shade200;
-            } else if (cal > budget) {
+              barColor = AppColors.divider;
+            } else if (cal > budget * 1.1) {
               barColor = AppColors.danger;
-            } else if (cal > budget * 0.85) {
-              barColor = AppColors.warning;
-            } else {
+            } else if (cal > budget * 0.9) {
               barColor = AppColors.primary;
+            } else {
+              barColor = AppColors.secondary;
             }
             return BarChartGroupData(
               x: e.key,
               barRods: [
                 BarChartRodData(
-                  toY: cal == 0 ? 0.5 : cal,
+                  toY: cal == 0 ? maxVal * 0.01 : cal,
                   color: barColor,
-                  width: 28,
-                  borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(8)),
-                  backDrawRodData: BackgroundBarChartRodData(
-                    show: true,
-                    toY: maxVal * 1.15,
-                    color: Colors.grey.shade50,
-                  ),
+                  width: isWeek ? 26 : 6,
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(6)),
                 ),
               ],
             );
           }).toList(),
-          // Hedef çizgisi
           extraLinesData: ExtraLinesData(
             horizontalLines: [
               HorizontalLine(
@@ -307,19 +379,22 @@ class _MacroPieCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final total = protein + carbs + fat;
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withAlpha(8),
-              blurRadius: 12,
-              offset: const Offset(0, 3))
-        ],
-      ),
+    // Kalori katkısına göre yüzdeler (4/4/9)
+    final pk = protein * 4, ck = carbs * 4, fk = fat * 9;
+    final totalKcal = pk + ck + fk;
+
+    PieChartSectionData section(double v, Color c) => PieChartSectionData(
+          value: v,
+          color: c,
+          title: totalKcal > 0 ? '${(v / totalKcal * 100).round()}%' : '',
+          titleStyle: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: AppColors.background),
+          radius: 52,
+        );
+
+    return _InfoCard(
       child: Row(
         children: [
           SizedBox(
@@ -328,38 +403,11 @@ class _MacroPieCard extends StatelessWidget {
             child: PieChart(
               PieChartData(
                 sectionsSpace: 2,
-                centerSpaceRadius: 36,
+                centerSpaceRadius: 34,
                 sections: [
-                  PieChartSectionData(
-                    value: protein,
-                    color: const Color(0xFF3498DB),
-                    title: '${(protein / total * 100).round()}%',
-                    titleStyle: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white),
-                    radius: 52,
-                  ),
-                  PieChartSectionData(
-                    value: carbs,
-                    color: const Color(0xFFF39C12),
-                    title: '${(carbs / total * 100).round()}%',
-                    titleStyle: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white),
-                    radius: 52,
-                  ),
-                  PieChartSectionData(
-                    value: fat,
-                    color: const Color(0xFFE74C3C),
-                    title: '${(fat / total * 100).round()}%',
-                    titleStyle: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white),
-                    radius: 52,
-                  ),
+                  section(pk, AppColors.protein),
+                  section(ck, AppColors.carbs),
+                  section(fk, AppColors.fat),
                 ],
               ),
             ),
@@ -370,25 +418,23 @@ class _MacroPieCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _MacroLegendRow(
-                    color: const Color(0xFF3498DB),
+                    color: AppColors.protein,
                     label: 'Protein',
                     value: '${protein.toStringAsFixed(1)}g'),
                 const SizedBox(height: 12),
                 _MacroLegendRow(
-                    color: const Color(0xFFF39C12),
+                    color: AppColors.carbs,
                     label: 'Karbonhidrat',
                     value: '${carbs.toStringAsFixed(1)}g'),
                 const SizedBox(height: 12),
                 _MacroLegendRow(
-                    color: const Color(0xFFE74C3C),
+                    color: AppColors.fat,
                     label: 'Yağ',
                     value: '${fat.toStringAsFixed(1)}g'),
                 const Divider(height: 20),
-                _MacroLegendRow(
-                    color: AppColors.textSecondary,
-                    label: 'Toplam',
-                    value: '${total.toStringAsFixed(1)}g',
-                    isBold: true),
+                const Text('Yüzdeler kalori katkısına göre',
+                    style: TextStyle(
+                        fontSize: 10, color: AppColors.textHint)),
               ],
             ),
           ),
@@ -402,13 +448,11 @@ class _MacroLegendRow extends StatelessWidget {
   final Color color;
   final String label;
   final String value;
-  final bool isBold;
 
   const _MacroLegendRow({
     required this.color,
     required this.label,
     required this.value,
-    this.isBold = false,
   });
 
   @override
@@ -418,43 +462,40 @@ class _MacroLegendRow extends StatelessWidget {
         Container(
             width: 10,
             height: 10,
-            decoration:
-                BoxDecoration(color: color, shape: BoxShape.circle)),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
         const SizedBox(width: 8),
         Expanded(
           child: Text(label,
-              style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
-                  fontWeight:
-                      isBold ? FontWeight.bold : FontWeight.normal)),
+              style: const TextStyle(
+                  fontSize: 12, color: AppColors.textSecondary)),
         ),
         Text(value,
             style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: color)),
+                fontSize: 13, fontWeight: FontWeight.bold, color: color)),
       ],
     );
   }
 }
 
-class _EmptyMacroCard extends StatelessWidget {
+// ── Yardımcı Widget'lar ───────────────────────────────────────────────────────
+
+class _InfoCard extends StatelessWidget {
+  final Widget child;
+  const _InfoCard({required this.child});
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 100,
+      padding: const EdgeInsets.all(20),
+      alignment: Alignment.center,
       decoration: BoxDecoration(
-          color: Colors.white, borderRadius: BorderRadius.circular(20)),
-      child: const Center(
-        child: Text('Bugün henüz öğün eklenmedi',
-            style: TextStyle(color: AppColors.textSecondary)),
+        color: AppColors.cardSurface,
+        borderRadius: BorderRadius.circular(20),
       ),
+      child: child,
     );
   }
 }
-
-// ── Yardımcı Widget'lar ───────────────────────────────────────────────────────
 
 class _StatCard extends StatelessWidget {
   final String label;
@@ -476,14 +517,8 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.cardSurface,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withAlpha(8),
-              blurRadius: 10,
-              offset: const Offset(0, 3))
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -497,20 +532,24 @@ class _StatCard extends StatelessWidget {
             child: Icon(icon, color: color, size: 18),
           ),
           const SizedBox(height: 10),
-          RichText(
-            text: TextSpan(
-              children: [
-                TextSpan(
-                    text: value,
-                    style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        color: color)),
-                TextSpan(
-                    text: ' $unit',
-                    style: const TextStyle(
-                        fontSize: 10, color: AppColors.textSecondary)),
-              ],
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: RichText(
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                      text: value,
+                      style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          color: color)),
+                  TextSpan(
+                      text: ' $unit',
+                      style: const TextStyle(
+                          fontSize: 10, color: AppColors.textSecondary)),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 2),

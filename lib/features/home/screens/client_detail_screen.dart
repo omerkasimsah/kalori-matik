@@ -224,7 +224,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
                         color: sel ? AppColors.secondary : AppColors.background,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: sel ? AppColors.secondary : Colors.grey.shade300,
+                          color: sel ? AppColors.secondary : AppColors.textHint,
                         ),
                       ),
                       child: Text(d,
@@ -593,8 +593,8 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
           SliverAppBar(
             pinned: true,
             expandedHeight: 160,
-            backgroundColor: Colors.white,
-            leading: BackButton(color: AppColors.textPrimary),
+            backgroundColor: AppColors.background,
+            leading: const BackButton(color: AppColors.textPrimary),
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: const BoxDecoration(
@@ -608,14 +608,14 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
                       width: 56,
                       height: 56,
                       decoration: BoxDecoration(
-                        color: Colors.white.withAlpha(40),
+                        color: AppColors.background.withAlpha(30),
                         shape: BoxShape.circle,
                       ),
                       child: Center(
                         child: Text(
                           (profile['kalori_id'] ?? '?').toString().substring(0, 1),
                           style: const TextStyle(
-                              color: Colors.white,
+                              color: AppColors.background,
                               fontWeight: FontWeight.w900,
                               fontSize: 24),
                         ),
@@ -629,14 +629,14 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
                           Text(
                             'KaloriID: ${profile['kalori_id'] ?? '-'}',
                             style: const TextStyle(
-                                color: Colors.white,
+                                color: AppColors.background,
                                 fontWeight: FontWeight.w900,
                                 fontSize: 18),
                           ),
                           Text(
                             '${profile['age'] ?? '-'} yaş • ${profile['weight'] ?? '-'} kg • ${profile['height'] ?? '-'} cm',
                             style: TextStyle(
-                                color: Colors.white.withAlpha(200),
+                                color: AppColors.background.withAlpha(200),
                                 fontSize: 12),
                           ),
                           const SizedBox(height: 8),
@@ -655,10 +655,10 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
                       icon: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: Colors.white.withAlpha(40),
+                          color: AppColors.background.withAlpha(30),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.edit, color: Colors.white, size: 18),
+                        child: const Icon(Icons.edit, color: AppColors.background, size: 18),
                       ),
                     ),
                   ],
@@ -669,7 +669,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
               controller: _tabCtrl,
               indicatorColor: AppColors.primary,
               labelColor: AppColors.primary,
-              unselectedLabelColor: Colors.white60,
+              unselectedLabelColor: AppColors.background.withAlpha(160),
               labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
               tabs: const [
                 Tab(text: 'Bugün'),
@@ -753,7 +753,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
                 child: LinearProgressIndicator(
                   value: (consumed / _currentTdee).clamp(0.0, 1.0),
                   minHeight: 12,
-                  backgroundColor: Colors.grey.shade200,
+                  backgroundColor: AppColors.surface,
                   color: consumed > _currentTdee ? AppColors.danger : AppColors.primary,
                 ),
               ),
@@ -764,7 +764,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
               style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1)),
           const SizedBox(height: 12),
           if (_todayMeals.isEmpty)
-            _EmptyCard(icon: Icons.no_food, label: 'Henüz öğün girilmemiş')
+            const _EmptyCard(icon: Icons.no_food, label: 'Henüz öğün girilmemiş')
           else
             ..._todayMeals.map((m) => _MealCard(meal: m)),
         ],
@@ -801,7 +801,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
         ),
         const SizedBox(height: 12),
         if (_workoutPlans.isEmpty)
-          _EmptyCard(icon: Icons.fitness_center, label: 'Henüz antrenman planı yok\nYukarıdan plan oluşturun')
+          const _EmptyCard(icon: Icons.fitness_center, label: 'Henüz antrenman planı yok\nYukarıdan plan oluşturun')
         else
           ..._workoutPlans.map((plan) => _WorkoutPlanCard(
             plan: plan,
@@ -856,7 +856,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
         ),
         const SizedBox(height: 12),
         if (_nutritionPlan.isEmpty)
-          _EmptyCard(icon: Icons.restaurant_menu, label: 'Henüz beslenme planı yok\nYukarıdan öğün ekleyin')
+          const _EmptyCard(icon: Icons.restaurant_menu, label: 'Henüz beslenme planı yok\nYukarıdan öğün ekleyin')
         else
           ...grouped.entries.map((e) => _NutritionGroupCard(
             mealTime: e.key,
@@ -899,7 +899,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
         ),
         const SizedBox(height: 12),
         if (_coachNotes.isEmpty)
-          _EmptyCard(icon: Icons.notes, label: 'Henüz not yok\nDanışanınız için notlar ekleyin')
+          const _EmptyCard(icon: Icons.notes, label: 'Henüz not yok\nDanışanınız için notlar ekleyin')
         else
           ..._coachNotes.map((n) => _NoteCard(
             note: n,
@@ -927,13 +927,13 @@ class _HeaderChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha(30),
+        color: AppColors.background.withAlpha(25),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, color: Colors.white70, size: 12),
+        Icon(icon, color: AppColors.background, size: 12),
         const SizedBox(width: 4),
-        Text(label, style: const TextStyle(color: Colors.white, fontSize: 11)),
+        Text(label, style: const TextStyle(color: AppColors.background, fontSize: 11)),
       ]),
     );
   }
@@ -951,7 +951,7 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.cardSurface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 8, offset: const Offset(0, 3))],
       ),
@@ -978,7 +978,7 @@ class _MealCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.cardSurface,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [BoxShadow(color: Colors.black.withAlpha(6), blurRadius: 8)],
       ),
@@ -1028,7 +1028,7 @@ class _WorkoutPlanCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.cardSurface,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 10, offset: const Offset(0, 4))],
       ),
@@ -1091,8 +1091,8 @@ class _WorkoutPlanCard extends StatelessWidget {
 
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+              decoration: const BoxDecoration(
+                border: Border(bottom: BorderSide(color: AppColors.divider)),
               ),
               child: Row(children: [
                 // Sıra numarası
@@ -1147,7 +1147,7 @@ class _NutritionGroupCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.cardSurface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(color: Colors.black.withAlpha(6), blurRadius: 8)],
       ),
@@ -1223,7 +1223,7 @@ class _NoteCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.cardSurface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: color.withAlpha(40)),
         boxShadow: [BoxShadow(color: Colors.black.withAlpha(5), blurRadius: 6)],
@@ -1268,11 +1268,11 @@ class _EmptyCard extends StatelessWidget {
       padding: const EdgeInsets.all(32),
       margin: const EdgeInsets.only(top: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.cardSurface,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(children: [
-        Icon(icon, size: 48, color: Colors.grey.shade300),
+        Icon(icon, size: 48, color: AppColors.textHint),
         const SizedBox(height: 12),
         Text(label,
             textAlign: TextAlign.center,
@@ -1292,7 +1292,7 @@ class _BottomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppColors.cardSurface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       padding: EdgeInsets.only(
@@ -1304,7 +1304,7 @@ class _BottomSheet extends StatelessWidget {
           Center(
             child: Container(
               width: 40, height: 4,
-              decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+              decoration: BoxDecoration(color: AppColors.textHint, borderRadius: BorderRadius.circular(2)),
             ),
           ),
           const SizedBox(height: 16),

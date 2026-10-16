@@ -186,7 +186,7 @@ class _ProfessionalDashboardState
           SliverAppBar(
             expandedHeight: 0,
             pinned: true,
-            backgroundColor: Colors.white,
+            backgroundColor: AppColors.background,
             elevation: 0.5,
             automaticallyImplyLeading: false,
             title: Column(
@@ -216,7 +216,7 @@ class _ProfessionalDashboardState
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(Icons.person_add,
-                      color: Colors.white, size: 18),
+                      color: AppColors.background, size: 18),
                 ),
                 tooltip: 'Danışan Ekle',
                 onPressed: _showAddClientDialog,
@@ -285,7 +285,7 @@ class _ProfessionalDashboardState
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.cardSurface,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
@@ -301,7 +301,7 @@ class _ProfessionalDashboardState
                 Container(
                   width: 52,
                   height: 52,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     gradient: AppColors.primaryGradient,
                     shape: BoxShape.circle,
                   ),
@@ -309,7 +309,7 @@ class _ProfessionalDashboardState
                     child: Text(
                       (profile['kalori_id'] ?? '?').toString().substring(0, 1),
                       style: const TextStyle(
-                          color: Colors.white,
+                          color: AppColors.background,
                           fontWeight: FontWeight.w900,
                           fontSize: 20),
                     ),
@@ -401,21 +401,21 @@ class _ProfessionalDashboardState
         ),
         Expanded(
           child: _feedItems.isEmpty
-              ? Center(
+              ? const Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.bolt,
-                          size: 64, color: Colors.grey.shade300),
-                      const SizedBox(height: 12),
-                      const Text(
+                          size: 64, color: AppColors.textHint),
+                      SizedBox(height: 12),
+                      Text(
                         'Henüz canlı aktivite yok',
                         style: TextStyle(
                             color: AppColors.textSecondary,
                             fontWeight: FontWeight.w500),
                       ),
-                      const SizedBox(height: 6),
-                      const Text(
+                      SizedBox(height: 6),
+                      Text(
                         'Danışanlarınız öğün girdiğinde burada görünür',
                         style: TextStyle(
                             color: AppColors.textHint, fontSize: 12),
@@ -489,12 +489,12 @@ class _ProfessionalDashboardState
             Container(
               width: 100,
               height: 100,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 gradient: AppColors.primaryGradient,
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.people_outline,
-                  size: 52, color: Colors.white),
+                  size: 52, color: AppColors.background),
             ),
             const SizedBox(height: 24),
             const Text(

@@ -8,33 +8,32 @@ class CalorieCircularIndicator extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Riverpod üzerinden dinamik güncellenen global durum (state) bildirimlerini dinliyoruz
-    final remaining = ref.watch(remainingBudgetProvider); // Kullanılabilir (kalan) bakiye
-    final total = ref.watch(dailyBudgetProvider);       // Günlük kalori harcama hedefi
-    final consumed = ref.watch(caloriesConsumedProvider); // Alınan toplam enerji
+    final remaining = ref.watch(remainingBudgetProvider); // Kalan bakiye
+    final total = ref.watch(dailyBudgetProvider);           // Günlük hedef
+    final consumed = ref.watch(caloriesConsumedProvider);   // Alınan enerji
+    final active = ref.watch(activeCaloriesProvider);       // Adımlardan kazanılan
 
+    // Doluluk oranı: yenen / (hedef + aktivite)
+    final available = total + active;
+    final progress =
+        available > 0 ? (consumed / available).clamp(0.0, 1.0) : 0.0;
+    final over = remaining < 0;
 
-    // Görsel 'Doluluk' Oranının Hesaplanması
-    // Dairesel ilerleme çubuğu animasyonu için 0.0 (Boş) ile 1.0 (Tam Dolu) aralığında değer
-    double progress = total > 0 ? (total - remaining) / total : 0.0;
-    progress = progress.clamp(0.0, 1.0);
-
-    // Kalan bakiye eşiğine göre 'Uyarı/Uygunluk' Rengi Tanımlamaları ve Smart Microcopy
-    Color progressColor;
-    String statusLabel;
-    
-    if (progress >= 1.0) {
-      // Bakiye tamamen aşıldı (Kriz anı - Sıcak Turuncu/Kırmızı)
-      progressColor = AppColors.warning; // Warm Orange (PM talebi: limit aşımları için sıcak turuncu)
-      statusLabel = 'Bankayı hortumladın! Hemen bir 30 dakika yürüyüş patlatıp bakiyeyi toparlayalım.';
+    final Color progressColor;
+    final String statusLabel;
+    if (over) {
+      progressColor = AppColors.danger;
+      statusLabel =
+          'Limiti ${-remaining} kcal aştın. 30 dakikalık tempolu bir yürüyüş dengeyi toparlar 🚶';
     } else if (progress > 0.85) {
-      // Limitin %85'inden fazlası harcandı
       progressColor = AppColors.warning;
-      statusLabel = 'Kırmızı çizgiye yaklaştın, cüzdan elden gidiyor!';
-    } else {
-      // Güvende (Normal ilerleyiş - Zümrüt Yeşili)
+      statusLabel = 'Kırmızı çizgiye yaklaştın, akşam hafif bir öğün seç.';
+    } else if (consumed == 0) {
       progressColor = AppColors.primary;
-      statusLabel = 'Bakiye tıkırında, harika bir yatırım günü! 💎';
+      statusLabel = 'Güne hazırsın! İlk öğününü ekleyerek başla. 💎';
+    } else {
+      progressColor = AppColors.primary;
+      statusLabel = 'Bakiye tıkırında, harika gidiyorsun! 💎';
     }
 
     return Column(
@@ -44,14 +43,14 @@ class CalorieCircularIndicator extends ConsumerWidget {
           width: 230,
           height: 230,
           child: TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0, end: 1 - progress),
+            tween: Tween<double>(begin: 0, end: over ? 1.0 : 1 - progress),
             duration: const Duration(milliseconds: 900),
             curve: Curves.easeOutCubic,
             builder: (context, value, _) {
               return Stack(
                 fit: StackFit.expand,
                 children: [
-                  CircularProgressIndicator(
+                  const CircularProgressIndicator(
                     value: 1.0,
                     strokeWidth: 22,
                     color: AppColors.cardSurface, // Koyu halka zemini
@@ -69,7 +68,7 @@ class CalorieCircularIndicator extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          '${remaining > 0 ? remaining : 0}',
+                          '${remaining.abs()}',
                           style: TextStyle(
                             fontSize: 46,
                             fontWeight: FontWeight.w900,
@@ -77,9 +76,9 @@ class CalorieCircularIndicator extends ConsumerWidget {
                             height: 1.0,
                           ),
                         ),
-                        const Text(
-                          'KCAL kalan',
-                          style: TextStyle(
+                        Text(
+                          over ? 'KCAL fazla' : 'KCAL kalan',
+                          style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                             color: AppColors.textSecondary,
@@ -128,26 +127,24 @@ class CalorieCircularIndicator extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _SummaryTile(
-                label: 'Günlük Limit',
+                label: 'Hedef',
                 value: '$total',
                 unit: 'kcal',
-                color: AppColors.textSecondary,
+                color: AppColors.textPrimary,
               ),
-              Container(
-                  width: 1, height: 36, color: Colors.white24),
+              Container(width: 1, height: 36, color: AppColors.divider),
               _SummaryTile(
-                label: 'Harcanan',
+                label: 'Yenen',
                 value: '$consumed',
                 unit: 'kcal',
-                color: AppColors.danger,
+                color: AppColors.carbs,
               ),
-              Container(
-                  width: 1, height: 36, color: Colors.white24),
+              Container(width: 1, height: 36, color: AppColors.divider),
               _SummaryTile(
-                label: 'Kalan',
-                value: '${remaining > 0 ? remaining : 0}',
+                label: 'Aktivite',
+                value: '+$active',
                 unit: 'kcal',
-                color: progressColor,
+                color: AppColors.secondary,
               ),
             ],
           ),

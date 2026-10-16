@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Çekirdek (Core) ve Uygulama Teması İçe Aktarımları
+import 'core/config/app_config.dart';
 import 'core/theme/app_theme.dart';
 
 // Özellik (Feature) / Modül Ekranlarının İçe Aktarımları
@@ -13,6 +14,8 @@ import 'features/onboarding/screens/onboarding_screen.dart';
 import 'features/home/screens/home_screen.dart';
 import 'features/camera/screens/add_meal_screen.dart';
 import 'features/home/screens/client_detail_screen.dart';
+import 'features/history/screens/history_screen.dart';
+import 'features/tracking/screens/tracking_screen.dart';
 
 void main() async {
   // Flutter framework'ünün native (platform) kanallarıyla haberleşebilmesi için gerekli köprü kurulumu.
@@ -20,9 +23,10 @@ void main() async {
   
   // Supabase (Backend-as-a-Service) bağlantısı başlatılıyor.
   // Projenin veritabanı (auth, profiles, meal_logs) işlemlerinin tümü bu bağlantı üzerinden yürütülür.
+  // Bağlantı bilgileri lib/core/config/app_config.dart içinden (dart-define) okunur.
   await Supabase.initialize(
-    url: 'https://lxenaupsykwlwlebwcwg.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4ZW5hdXBzeWt3bHdsZWJ3Y3dnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyMTAyNDQsImV4cCI6MjA4ODc4NjI0NH0.JC6Mtnk2Df6Ar0oczQQ1cLClwe9nI5pPnfrbvZz5DAM',
+    url: AppConfig.supabaseUrl,
+    anonKey: AppConfig.supabaseAnonKey,
   );
 
   // Uygulamanın en dış sarmalayıcısı olarak ProviderScope (Riverpod state yönetimi için) kullanılıyor.
@@ -49,8 +53,19 @@ class KaloriMatikApp extends StatelessWidget {
 
 // Temel Yönlendirme (Routing) Mimarisi 
 // go_router kütüphanesi kullanılarak sayfalar (ekranlar) arası geçiş işlemleri yönetilir.
+// Oturum gerektirmeyen rotalar
+const _publicRoutes = {'/', '/login', '/register'};
+
 final _router = GoRouter(
   initialLocation: '/',
+  // Oturumu olmayan kullanıcı korumalı bir sayfaya gidemez.
+  redirect: (context, state) {
+    final loggedIn = Supabase.instance.client.auth.currentSession != null;
+    if (!loggedIn && !_publicRoutes.contains(state.matchedLocation)) {
+      return '/login';
+    }
+    return null;
+  },
   routes: [
     GoRoute(
       path: '/',
@@ -77,7 +92,16 @@ final _router = GoRouter(
       builder: (context, state) => const AddMealScreen(),
     ),
     GoRoute(
+      path: '/history',
+      builder: (context, state) => const HistoryScreen(),
+    ),
+    GoRoute(
+      path: '/coach',
+      builder: (context, state) => const TrackingScreen(),
+    ),
+    GoRoute(
       path: '/client-detail',
+      redirect: (context, state) => state.extra is Map<String, dynamic> ? null : '/home',
       builder: (context, state) {
         final profile = state.extra as Map<String, dynamic>;
         return ClientDetailScreen(clientProfile: profile);
@@ -113,8 +137,8 @@ class _SplashScreenState extends State<SplashScreen>
     _checkAuthStatus();
   }
 
-  void _checkAuthStatus() async {
-    await Future.delayed(const Duration(milliseconds: 2200));
+  Future<void> _checkAuthStatus() async {
+    await Future.delayed(const Duration(milliseconds: 1200));
     if (mounted) {
       final session = Supabase.instance.client.auth.currentSession;
       if (session != null) {

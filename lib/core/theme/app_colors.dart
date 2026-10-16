@@ -31,6 +31,15 @@ class AppColors {
   static const Color textSecondary = Color(0xFF8B96A5); // Gri-Mavi (Alt yazılar)
   static const Color textHint = Color(0xFF4A5568); // Yarı görünmez rehberler
 
+  // ── MAKRO RENKLERİ ──────────────────────────────────────────────────────
+  static const Color protein = Color(0xFF4FA3FF);
+  static const Color carbs = Color(0xFFFFB020);
+  static const Color fat = Color(0xFFFF5C7A);
+  static const Color water = Color(0xFF38BDF8);
+
+  // Kart kenarlığı / ayraç (koyu zeminde ince çizgi)
+  static const Color divider = Color(0xFF2A3346);
+
   // ── GRADİENT TANIMLAMALARI ──────────────────────────────────────────────
   // Ana Elite Gradient: Neon Yeşil → Neon Cyan
   static const LinearGradient primaryGradient = LinearGradient(

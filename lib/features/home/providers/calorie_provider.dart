@@ -1,87 +1,163 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../../../core/services/supabase_service.dart';
+import '../../../core/utils/calorie_calculator.dart';
+import '../../activity/providers/pedometer_provider.dart';
 import '../models/meal_log.dart';
 
-// Günlük kalori hedefi limiti. Profil Supabase'den çekildiğinde güncellenebilir bir state provider.
-final dailyBudgetProvider = StateProvider<int>((ref) => 2000);
+// ── OTURUM ──────────────────────────────────────────────────────────────────
+
+/// Supabase oturum olaylarını dinler (giriş, çıkış, token yenileme).
+final authStateProvider = StreamProvider<AuthState>((ref) {
+  return SupabaseService.client.auth.onAuthStateChange;
+});
+
+/// Giriş yapmış kullanıcının kimliği. Kullanıcı değiştiğinde (çıkış / başka
+/// hesapla giriş) buna bağlı tüm provider'lar otomatik olarak sıfırlanır.
+final currentUserIdProvider = Provider<String?>((ref) {
+  ref.watch(authStateProvider);
+  return SupabaseService.getCurrentUser()?.id;
+});
+
+// ── PROFİL ve HEDEFLER ──────────────────────────────────────────────────────
 
 // Kullanıcı Profil Verisi (Rol Tabanlı Erişim Kontrolü - RBAC ve UI tasarımı mantığı için)
 // Bu provider uygulamada danışan, koç veya diyetisyen ayrımlarını sağlamak için asenkron izlenir.
 final userProfileProvider = FutureProvider<Map<String, dynamic>?>((ref) async {
-  return await SupabaseService.getProfile();
+  final userId = ref.watch(currentUserIdProvider);
+  if (userId == null) return null;
+  return SupabaseService.getProfile();
 });
+
+/// Günlük kalori hedefi (profilden; yoksa 2000 kcal).
+final dailyBudgetProvider = Provider<int>((ref) {
+  final profile = ref.watch(userProfileProvider).valueOrNull;
+  final tdee = (profile?['daily_tdee'] as num?)?.toInt();
+  return (tdee != null && tdee > 0) ? tdee : 2000;
+});
+
+/// Kullanıcının kilosu (adım → kalori ve su hedefi hesapları için).
+final userWeightProvider = Provider<double?>((ref) {
+  final profile = ref.watch(userProfileProvider).valueOrNull;
+  return (profile?['weight'] as num?)?.toDouble();
+});
+
+/// Günlük makro hedefleri.
+final macroTargetsProvider = Provider<MacroTargets>((ref) {
+  final profile = ref.watch(userProfileProvider).valueOrNull;
+  return CalorieCalculator.macroTargets(
+    calories: ref.watch(dailyBudgetProvider),
+    goal: (profile?['goal'] as String?) ?? 'maintain',
+  );
+});
+
+// ── ÖĞÜNLER ─────────────────────────────────────────────────────────────────
 
 // Öğün Listesi İçin Asenkron Durum (State) Modeli
 class MealLogState {
   final List<MealLog> meals;
   final bool isLoading;
-  MealLogState({required this.meals, required this.isLoading});
+  final String? error;
+
+  const MealLogState({
+    required this.meals,
+    this.isLoading = false,
+    this.error,
+  });
+
+  MealLogState copyWith({
+    List<MealLog>? meals,
+    bool? isLoading,
+    String? error,
+    bool clearError = false,
+  }) {
+    return MealLogState(
+      meals: meals ?? this.meals,
+      isLoading: isLoading ?? this.isLoading,
+      error: clearError ? null : (error ?? this.error),
+    );
+  }
 }
 
 // O güne ait kullanıcı tarafından girilen öğünlerin listesini bellekte (state içerisinde) tutan Provider
 final mealLogsProvider =
     StateNotifierProvider<MealLogNotifier, MealLogState>((ref) {
-  return MealLogNotifier(ref);
+  final userId = ref.watch(currentUserIdProvider);
+  return MealLogNotifier(userId: userId);
 });
 
-// Toplam harcanan kalori (Yenilen Besinler)
+// Toplam alınan kalori (Yenilen Besinler)
 final caloriesConsumedProvider = Provider<int>((ref) {
   final state = ref.watch(mealLogsProvider);
   return state.meals.fold(0, (sum, meal) => sum + meal.calories);
 });
 
-// Spor ve Aktivite'den kazanılan 'Aktif Kaloriler' (Harcanabilir Limite Eklenir)
-final activeCaloriesProvider = StateProvider<int>((ref) => 320); // Mock default
+/// Bugün alınan toplam makrolar (gram).
+final macrosConsumedProvider =
+    Provider<({double protein, double carbs, double fat})>((ref) {
+  final meals = ref.watch(mealLogsProvider).meals;
+  double p = 0, c = 0, f = 0;
+  for (final m in meals) {
+    p += m.protein ?? 0;
+    c += m.carbs ?? 0;
+    f += m.fat ?? 0;
+  }
+  return (protein: p, carbs: c, fat: f);
+});
 
-// Kalan kalori (Finansal Harcama Metaforu: TDEE Bütçesi + Edilen Aktiviteden Kazanılan Bakiye - Yenilen Toplam Miktar)
-// Bu provider üç farklı veri kaynağını birleştirerek ana ekrandaki kullanılabilir sınırı hesaplar.
+// Adım sayarından hesaplanan 'Aktif Kaloriler' (harcanabilir limite eklenir)
+final activeCaloriesProvider = Provider<int>((ref) {
+  final steps = ref.watch(pedometerProvider.select((s) => s.steps));
+  final weight = ref.watch(userWeightProvider) ?? 70;
+  return CalorieCalculator.stepsToCalories(steps, weightKg: weight);
+});
+
+// Kalan kalori (Bütçe + Aktiviteden Kazanılan - Yenilen)
 final remainingBudgetProvider = Provider<int>((ref) {
   final baseBudget = ref.watch(dailyBudgetProvider);
   final activeCalories = ref.watch(activeCaloriesProvider);
   final consumed = ref.watch(caloriesConsumedProvider);
-  
   return (baseBudget + activeCalories) - consumed;
 });
 
-// Veri katmanı değişikliklerini yöneten ve kullanıcı arayüzünü (UI) render eden ana StateNotifier Sınıfı
+// Veri katmanı değişikliklerini yöneten ana StateNotifier Sınıfı
 class MealLogNotifier extends StateNotifier<MealLogState> {
-  final Ref _ref;
+  final String? userId;
+  DateTime _loadedDay = _today();
 
-  MealLogNotifier(this._ref)
-      : super(MealLogState(meals: [], isLoading: false)) {
-    _init();
+  MealLogNotifier({required this.userId})
+      : super(const MealLogState(meals: [])) {
+    if (userId != null) loadMeals();
   }
 
-  Future<void> _init() async {
-    await loadUserBudget();
-    await loadMeals();
+  static DateTime _today() {
+    final n = DateTime.now();
+    return DateTime(n.year, n.month, n.day);
   }
 
-  /// Supabase'den kullanıcının daily_tdee değerini getirir ve provider'ı günceller.
-  Future<void> loadUserBudget() async {
-    if (SupabaseService.getCurrentUser() == null) return;
-    try {
-      final tdee = await SupabaseService.getDailyTdee();
-      if (tdee != null && tdee > 0) {
-        _ref.read(dailyBudgetProvider.notifier).state = tdee;
-      }
-    } catch (e) {
-      // Profil henüz yoksa varsayılan 2000 kalır
-    }
+  /// Gün değiştiyse (uygulama gece yarısından sonra öne alındığında) listeyi yeniler.
+  Future<void> refreshIfNewDay() async {
+    if (_loadedDay != _today()) await loadMeals();
   }
 
   Future<void> loadMeals() async {
-    if (SupabaseService.getCurrentUser() == null) return;
-
-    state = MealLogState(meals: state.meals, isLoading: true);
+    if (userId == null) return;
+    state = state.copyWith(isLoading: true, clearError: true);
     try {
       final meals = await SupabaseService.getTodayMeals();
-      state = MealLogState(meals: meals, isLoading: false);
+      _loadedDay = _today();
+      if (mounted) state = MealLogState(meals: meals);
     } catch (e) {
-      state = MealLogState(meals: state.meals, isLoading: false);
+      if (mounted) {
+        state = state.copyWith(
+            isLoading: false, error: 'Öğünler yüklenemedi. Bağlantınızı kontrol edin.');
+      }
     }
   }
 
+  /// Öğünü ekler. Arayüz anında güncellenir (optimistic UI); kayıt başarısız
+  /// olursa geri alınır ve hata fırlatılır.
   Future<void> addMeal({
     required String name,
     required int calories,
@@ -90,36 +166,65 @@ class MealLogNotifier extends StateNotifier<MealLogState> {
     double? carbs,
     double? fat,
   }) async {
-    // Optimistic UI Algoritması (Kullanıcı Deneyimi İyileştirmesi)
-    // Supabase arka plan çağrısını beklemeden yeni öğünü anında kullanıcı arayüzüne ekler
-    final newMeal = MealLog(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+    final tempMeal = MealLog(
+      id: 'temp-${DateTime.now().microsecondsSinceEpoch}',
       name: name,
       calories: calories,
-      time:
-          '${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}',
+      createdAt: DateTime.now(),
       insight: insight,
       protein: protein,
       carbs: carbs,
       fat: fat,
     );
-    state = MealLogState(meals: [newMeal, ...state.meals], isLoading: state.isLoading);
+    state = state.copyWith(meals: [tempMeal, ...state.meals]);
 
-    if (SupabaseService.getCurrentUser() != null) {
-      try {
-        await SupabaseService.addMealLog(
-          name: name,
-          calories: calories,
-          insight: insight,
-          protein: protein,
-          carbs: carbs,
-          fat: fat,
-        );
-        // Gerçek ID için yenile
-        loadMeals();
-      } catch (e) {
-        // Sessiz hata – UI zaten güncellendi
+    try {
+      final saved = await SupabaseService.addMealLog(
+        name: name,
+        calories: calories,
+        insight: insight,
+        protein: protein,
+        carbs: carbs,
+        fat: fat,
+      );
+      if (!mounted) return;
+      state = state.copyWith(
+        meals: [
+          for (final m in state.meals) m.id == tempMeal.id ? saved : m,
+        ],
+      );
+    } catch (e) {
+      if (mounted) {
+        state = state.copyWith(
+            meals: state.meals.where((m) => m.id != tempMeal.id).toList());
       }
+      rethrow;
+    }
+  }
+
+  /// Öğünü günceller; başarısız olursa eski hali geri yüklenir.
+  Future<void> updateMeal(MealLog updated) async {
+    final previous = state.meals;
+    state = state.copyWith(
+      meals: [for (final m in previous) m.id == updated.id ? updated : m],
+    );
+    try {
+      await SupabaseService.updateMealLog(updated);
+    } catch (e) {
+      if (mounted) state = state.copyWith(meals: previous);
+      rethrow;
+    }
+  }
+
+  /// Öğünü siler; başarısız olursa geri yüklenir.
+  Future<void> deleteMeal(String id) async {
+    final previous = state.meals;
+    state = state.copyWith(meals: previous.where((m) => m.id != id).toList());
+    try {
+      await SupabaseService.deleteMealLog(id);
+    } catch (e) {
+      if (mounted) state = state.copyWith(meals: previous);
+      rethrow;
     }
   }
 }

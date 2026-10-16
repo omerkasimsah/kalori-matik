@@ -8,11 +8,47 @@ class SupabaseService {
   // ── KİMLİK DOĞRULAMA (AUTH) ────────────────────────────────────────────────
 
   static Future<AuthResponse> signUp(String email, String password) async {
-    return await client.auth.signUp(email: email, password: password);
+    return await client.auth.signUp(email: email.trim(), password: password);
   }
 
   static Future<AuthResponse> signIn(String email, String password) async {
-    return await client.auth.signInWithPassword(email: email, password: password);
+    return await client.auth
+        .signInWithPassword(email: email.trim(), password: password);
+  }
+
+  static Future<void> resetPassword(String email) async {
+    await client.auth.resetPasswordForEmail(email.trim());
+  }
+
+  /// Supabase kimlik doğrulama hatalarını anlaşılır Türkçe mesaja çevirir.
+  static String authErrorMessage(Object error) {
+    final msg = (error is AuthException ? error.message : error.toString())
+        .toLowerCase();
+    if (msg.contains('invalid login credentials')) {
+      return 'E-posta veya şifre hatalı.';
+    }
+    if (msg.contains('email not confirmed')) {
+      return 'E-posta adresinizi henüz doğrulamadınız. Gelen kutunuzu kontrol edin.';
+    }
+    if (msg.contains('already registered') || msg.contains('already exists')) {
+      return 'Bu e-posta ile zaten bir hesap var. Giriş yapmayı deneyin.';
+    }
+    if (msg.contains('password') && msg.contains('at least')) {
+      return 'Şifre en az 6 karakter olmalı.';
+    }
+    if (msg.contains('rate limit') || msg.contains('too many')) {
+      return 'Çok fazla deneme yapıldı. Lütfen biraz bekleyin.';
+    }
+    if (msg.contains('invalid') && msg.contains('email')) {
+      return 'Geçerli bir e-posta adresi girin.';
+    }
+    if (msg.contains('socket') ||
+        msg.contains('network') ||
+        msg.contains('failed host lookup') ||
+        msg.contains('clientexception')) {
+      return 'Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edin.';
+    }
+    return 'Bir hata oluştu. Lütfen tekrar deneyin.';
   }
 
   static Future<void> signOut() async {
@@ -65,12 +101,24 @@ class SupabaseService {
     final user = getCurrentUser();
     if (user == null) throw Exception('Profesyonel girişi yapılmamış.');
 
-    // 1. Danışanı KaloriID ile bul
-    final clientData = await client
-        .from('profiles')
-        .select('id, role')
-        .eq('kalori_id', kaloriId)
-        .maybeSingle();
+    // 1. Danışanı KaloriID ile bul.
+    // RLS bağlı olmayan profilleri gizlediği için önce SECURITY DEFINER
+    // fonksiyonu (supabase/migrations) denenir; yoksa doğrudan sorguya düşülür.
+    final code = kaloriId.trim().toUpperCase();
+    Map<String, dynamic>? clientData;
+    try {
+      final res = await client
+          .rpc('find_client_by_kalori_id', params: {'p_kalori_id': code});
+      if (res is List && res.isNotEmpty) {
+        clientData = Map<String, dynamic>.from(res.first as Map);
+      }
+    } catch (_) {
+      clientData = await client
+          .from('profiles')
+          .select('id, role')
+          .eq('kalori_id', code)
+          .maybeSingle();
+    }
 
     if (clientData == null) {
       throw Exception('Bu KaloriID\'ye sahip bir kullanıcı bulunamadı.');
@@ -80,7 +128,20 @@ class SupabaseService {
       throw Exception('Bu kod bir danışana ait değil.');
     }
 
-    // 2. Bağlantı oluştur
+    if (clientData['id'] == user.id) {
+      throw Exception('Kendinizi danışan olarak ekleyemezsiniz.');
+    }
+
+    // 2. Bağlantı oluştur (zaten varsa uyar)
+    final existing = await client
+        .from('connections')
+        .select('id')
+        .eq('professional_id', user.id)
+        .eq('client_id', clientData['id'])
+        .maybeSingle();
+    if (existing != null) {
+      throw Exception('Bu danışan zaten listenizde.');
+    }
     await client.from('connections').insert({
       'professional_id': user.id,
       'client_id': clientData['id'],
@@ -277,7 +338,8 @@ class SupabaseService {
 
   // ── MEAL LOGS ─────────────────────────────────────────────────────────────
 
-  static Future<void> addMealLog({
+  /// Yeni öğün kaydı ekler ve veritabanının oluşturduğu kaydı döndürür.
+  static Future<MealLog> addMealLog({
     required String name,
     required int calories,
     String? insight,
@@ -288,60 +350,81 @@ class SupabaseService {
     final user = getCurrentUser();
     if (user == null) throw Exception('Kullanıcı girişi yapılmamış.');
 
-    await client.from('meal_logs').insert({
-      'user_id': user.id,
-      'name': name,
-      'calories': calories,
-      'insight': insight,
-      'protein': protein,
-      'carbs': carbs,
-      'fat': fat,
-    });
+    final row = await client
+        .from('meal_logs')
+        .insert({
+          'user_id': user.id,
+          'name': name,
+          'calories': calories,
+          'insight': insight,
+          'protein': protein,
+          'carbs': carbs,
+          'fat': fat,
+        })
+        .select()
+        .single();
+    return MealLog.fromMap(row);
+  }
+
+  /// Öğün kaydını günceller. RLS izin vermezse hata fırlatır.
+  static Future<void> updateMealLog(MealLog meal) async {
+    final rows = await client
+        .from('meal_logs')
+        .update({
+          'name': meal.name,
+          'calories': meal.calories,
+          'protein': meal.protein,
+          'carbs': meal.carbs,
+          'fat': meal.fat,
+        })
+        .eq('id', meal.id)
+        .select('id');
+    if (rows.isEmpty) {
+      throw Exception('Öğün güncellenemedi (yetki yok).');
+    }
+  }
+
+  /// Öğün kaydını siler. RLS izin vermezse hata fırlatır.
+  static Future<void> deleteMealLog(String id) async {
+    final rows =
+        await client.from('meal_logs').delete().eq('id', id).select('id');
+    if (rows.isEmpty) {
+      throw Exception('Öğün silinemedi (yetki yok).');
+    }
+  }
+
+  static String _startOfDayUtc([DateTime? day]) {
+    final d = day ?? DateTime.now();
+    return DateTime(d.year, d.month, d.day).toUtc().toIso8601String();
   }
 
   static Future<List<MealLog>> getTodayMeals() async {
     final user = getCurrentUser();
     if (user == null) return [];
-
-    final now = DateTime.now();
-    final startOfDay =
-        DateTime(now.year, now.month, now.day).toUtc().toIso8601String();
-
-    final response = await client
-        .from('meal_logs')
-        .select()
-        .eq('user_id', user.id)
-        .gte('created_at', startOfDay)
-        .order('created_at', ascending: false);
-
-    return _parseMeals(response);
+    return getMealsForUser(user.id);
   }
 
   // Profesyonel kullanıcının belirli bir danışanının bugünkü öğünlerini getirir
-  static Future<List<MealLog>> getClientTodayMeals(String clientId) async {
-    final now = DateTime.now();
-    final startOfDay =
-        DateTime(now.year, now.month, now.day).toUtc().toIso8601String();
+  static Future<List<MealLog>> getClientTodayMeals(String clientId) =>
+      getMealsForUser(clientId);
 
+  static Future<List<MealLog>> getMealsForUser(String userId) async {
     final response = await client
         .from('meal_logs')
         .select()
-        .eq('user_id', clientId)
-        .gte('created_at', startOfDay)
+        .eq('user_id', userId)
+        .gte('created_at', _startOfDayUtc())
         .order('created_at', ascending: false);
-
     return _parseMeals(response);
   }
 
-  /// Son 30 günlük tüm öğünleri getirir
+  /// Son [days] günlük tüm öğünleri getirir (bugün dahil).
   static Future<List<MealLog>> getAllMeals({int days = 30}) async {
     final user = getCurrentUser();
     if (user == null) return [];
 
-    final since = DateTime.now()
-        .subtract(Duration(days: days))
-        .toUtc()
-        .toIso8601String();
+    final since =
+        _startOfDayUtc(DateTime.now().subtract(Duration(days: days - 1)));
 
     final response = await client
         .from('meal_logs')
@@ -353,65 +436,100 @@ class SupabaseService {
     return _parseMeals(response);
   }
 
-  /// Son 7 günlük günlük kalori toplamlarını döndürür
-  static Future<List<Map<String, dynamic>>> getWeeklyCalories() async {
-    final user = getCurrentUser();
-    if (user == null) return [];
-
-    final since = DateTime.now()
-        .subtract(const Duration(days: 6))
-        .toUtc()
-        .toIso8601String();
-
-    final response = await client
-        .from('meal_logs')
-        .select('calories, created_at')
-        .eq('user_id', user.id)
-        .gte('created_at', since)
-        .order('created_at', ascending: true);
-
-    // Günlere göre grupla
-    final Map<String, int> dailyTotals = {};
-    for (final row in (response as List)) {
-      final date = DateTime.parse(row['created_at']).toLocal();
-      final key =
-          '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}';
-      dailyTotals[key] = (dailyTotals[key] ?? 0) + (row['calories'] as int? ?? 0);
-    }
-
-    // Son 7 günü sırayla döndür
-    final result = <Map<String, dynamic>>[];
-    for (int i = 6; i >= 0; i--) {
-      final d = DateTime.now().subtract(Duration(days: i));
-      final key =
-          '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
-      result.add({'date': key, 'calories': dailyTotals[key] ?? 0});
-    }
-    return result;
+  /// Son [days] günün günlük kalori ve makro toplamlarını (eskiden yeniye) döndürür.
+  static Future<List<DailyTotal>> getDailyTotals({int days = 7}) async {
+    final meals = await getAllMeals(days: days);
+    return DailyTotal.group(meals, days: days);
   }
 
   static List<MealLog> _parseMeals(List<dynamic> response) {
-    return response.map((e) {
-      return MealLog(
-        id: e['id'].toString(),
-        name: e['name'] ?? 'Bilinmeyen',
-        calories: e['calories'] ?? 0,
-        time: DateTime.parse(e['created_at'])
-            .toLocal()
-            .toString()
-            .substring(11, 16),
-        insight: e['insight'],
-        protein: _toDouble(e['protein']),
-        carbs: _toDouble(e['carbs']),
-        fat: _toDouble(e['fat']),
-      );
-    }).toList();
+    return response
+        .map((e) => MealLog.fromMap(Map<String, dynamic>.from(e as Map)))
+        .toList();
   }
 
-  static double? _toDouble(dynamic value) {
-    if (value == null) return null;
-    if (value is double) return value;
-    if (value is int) return value.toDouble();
-    return double.tryParse(value.toString());
+  // ── KOÇ İÇERİKLERİ (DANIŞAN TARAFI) ─────────────────────────────────────
+
+  /// Giriş yapmış danışana atanmış beslenme planı.
+  static Future<List<Map<String, dynamic>>> getMyNutritionPlan() async {
+    final user = getCurrentUser();
+    if (user == null) return [];
+    final response = await client
+        .from('nutrition_plans')
+        .select()
+        .eq('client_id', user.id)
+        .order('created_at', ascending: true);
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  /// Giriş yapmış danışana yazılan koç notları.
+  static Future<List<Map<String, dynamic>>> getMyCoachNotes() async {
+    final user = getCurrentUser();
+    if (user == null) return [];
+    final response = await client
+        .from('coach_notes')
+        .select()
+        .eq('client_id', user.id)
+        .order('created_at', ascending: false)
+        .limit(20);
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  /// Giriş yapmış danışana atanmış aktif antrenman planları.
+  static Future<List<Map<String, dynamic>>> getMyWorkoutPlans() async {
+    final user = getCurrentUser();
+    if (user == null) return [];
+    final response = await client
+        .from('workout_plans')
+        .select('*, workout_exercises (*)')
+        .eq('client_id', user.id)
+        .eq('is_active', true)
+        .order('created_at', ascending: false);
+    return List<Map<String, dynamic>>.from(response);
+  }
+}
+
+/// Bir güne ait toplam kalori ve makrolar.
+class DailyTotal {
+  final DateTime date;
+  final int calories;
+  final double protein;
+  final double carbs;
+  final double fat;
+  final int mealCount;
+
+  const DailyTotal({
+    required this.date,
+    this.calories = 0,
+    this.protein = 0,
+    this.carbs = 0,
+    this.fat = 0,
+    this.mealCount = 0,
+  });
+
+  DailyTotal add(MealLog m) => DailyTotal(
+        date: date,
+        calories: calories + m.calories,
+        protein: protein + (m.protein ?? 0),
+        carbs: carbs + (m.carbs ?? 0),
+        fat: fat + (m.fat ?? 0),
+        mealCount: mealCount + 1,
+      );
+
+  /// Öğünleri son [days] güne (bugün dahil, eskiden yeniye) dağıtır.
+  /// Hiç öğün olmayan günler de sıfır değerle listede yer alır.
+  static List<DailyTotal> group(List<MealLog> meals,
+      {int days = 7, DateTime? now}) {
+    final today = now ?? DateTime.now();
+    final byDay = <DateTime, DailyTotal>{};
+    for (int i = days - 1; i >= 0; i--) {
+      final d = DateTime(today.year, today.month, today.day - i);
+      byDay[d] = DailyTotal(date: d);
+    }
+    for (final m in meals) {
+      final t = byDay[m.day];
+      if (t != null) byDay[m.day] = t.add(m);
+    }
+    return byDay.values.toList();
   }
 }
