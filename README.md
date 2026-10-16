@@ -17,7 +17,7 @@ KaloriMatik, günlük besin ve kalori takibini manuel arama listeleriyle vakit k
 - **🎯 Kalori & Makro Hedefleri:** Mifflin-St Jeor ile hesaplanan günlük hedef, hedefe göre protein/karbonhidrat/yağ dağılımı ve canlı ilerleme çubukları.
 - **🚶 Adım Sayar & Aktif Kalori:** Adımlar kilonuza göre yakılan kaloriye çevrilir ve günlük bütçenize eklenir.
 - **💧 Su Takibi:** Kilonuza göre hesaplanan günlük hedef ve hızlı ekleme butonları.
-- **🏋️ Antrenman Zamanlayıcısı:** Ekipmansız 10 dakikalık hızlı antrenman veya koçunuzun atadığı planları adım adım, geri sayımlı uygulayın.
+- **🏋️ Antrenman Merkezi:** 9 hazır program (Gym itme/çekme/bacak, yeni başlayan, evde tüm vücut, karın, HIIT, salon kardiyo, esneme), 40 egzersizlik çevrimdışı kütüphane (adım adım anlatım, ipuçları, kas grubu/ekipman filtresi), set-set geri sayımlı antrenman oynatıcı, 16 spor için MET tabanlı kalori kaydı ve koçunuzun atadığı planlar. Yakılan kalori günlük bütçenize eklenir.
 - **📊 İstatistikler & Geçmiş:** 7/30 günlük kalori grafiği, günlük ortalama, hedefte kalınan gün sayısı, kayıt serisi ve gün gün gruplanmış 30 günlük geçmiş.
 - **🧑‍⚕️ Diyetisyen / Koç Modülü:** Panel danışanları "ilgi bekliyor / yolunda" durumuna göre sıralar (kayıt girmeyen veya hedefi aşan danışanlar üstte). Danışan detayında 7 günlük kalori, kilo grafiği, öğünlere yorum, beslenme/antrenman planı ve notlar bulunur. Danışan bunları ana sayfada ve **"Koçum"** ekranında görür.
 - **🌙 Modern Koyu Tema:** Tüm ekranlarda tutarlı, yüksek kontrastlı koyu arayüz.

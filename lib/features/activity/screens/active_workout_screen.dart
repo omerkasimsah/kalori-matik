@@ -247,13 +247,13 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              '${step.sets ?? 1} × ${step.reps ?? '-'}',
+                              '${step.reps ?? '-'}',
                               style: TextStyle(
                                   fontSize: 44,
                                   fontWeight: FontWeight.w900,
                                   color: color),
                             ),
-                            const Text('set × tekrar',
+                            const Text('tekrar',
                                 style:
                                     TextStyle(color: AppColors.textSecondary)),
                           ],
@@ -345,8 +345,9 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
                   color: AppColors.textSecondary, fontSize: 16)),
           const SizedBox(height: 40),
           ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Bitir'),
+            // Süre (dk) sonuç olarak döner; Aktivite ekranı bunu kaydeder.
+            onPressed: () => Navigator.of(context).pop(minutes < 1 ? 1 : minutes),
+            child: const Text('Kaydet ve Bitir'),
           ),
         ],
       ),

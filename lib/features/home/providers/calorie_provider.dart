@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/services/supabase_service.dart';
 import '../../../core/utils/calorie_calculator.dart';
+import '../../activity/providers/activity_log_provider.dart';
 import '../../activity/providers/pedometer_provider.dart';
 import '../models/meal_log.dart';
 
@@ -106,11 +107,18 @@ final macrosConsumedProvider =
   return (protein: p, carbs: c, fat: f);
 });
 
-// Adım sayarından hesaplanan 'Aktif Kaloriler' (harcanabilir limite eklenir)
-final activeCaloriesProvider = Provider<int>((ref) {
+// Adımlardan ve kaydedilen spor/antrenmanlardan gelen 'Aktif Kaloriler'
+// (harcanabilir limite eklenir). Yürüyüş kaydı ile adımların çift
+// sayılmaması için adımlar yalnızca kayıtsız hareketi temsil eder.
+final stepCaloriesProvider = Provider<int>((ref) {
   final steps = ref.watch(pedometerProvider.select((s) => s.steps));
   final weight = ref.watch(userWeightProvider) ?? 70;
   return CalorieCalculator.stepsToCalories(steps, weightKg: weight);
+});
+
+final activeCaloriesProvider = Provider<int>((ref) {
+  return ref.watch(stepCaloriesProvider) +
+      ref.watch(loggedActivityCaloriesProvider);
 });
 
 // Kalan kalori (Bütçe + Aktiviteden Kazanılan - Yenilen)

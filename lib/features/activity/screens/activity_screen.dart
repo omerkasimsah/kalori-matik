@@ -4,8 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/services/supabase_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../home/providers/calorie_provider.dart';
+import '../data/sports.dart';
+import '../data/workout_programs.dart';
+import '../providers/activity_log_provider.dart';
 import '../providers/pedometer_provider.dart';
 import 'active_workout_screen.dart';
+import 'exercise_screens.dart';
+import 'program_detail_screen.dart';
 
 /// Koçun danışana atadığı aktif antrenman planları.
 final myWorkoutPlansProvider =
@@ -17,6 +22,9 @@ final myWorkoutPlansProvider =
     return []; // Koç modülü tabloları kurulmamış olabilir
   }
 });
+
+/// Seçili program kategorisi (null = hepsi).
+final programFilterProvider = StateProvider<ProgramCategory?>((ref) => null);
 
 class ActivityScreen extends ConsumerWidget {
   const ActivityScreen({super.key});
@@ -41,21 +49,52 @@ class ActivityScreen extends ConsumerWidget {
     return steps;
   }
 
-  void _start(BuildContext context, String title, List<WorkoutStep> steps) {
-    Navigator.of(context).push(MaterialPageRoute(
+  /// Antrenmanı başlatır; bitince süreyi aktivite olarak kaydeder.
+  static Future<void> startWorkout(
+    BuildContext context,
+    WidgetRef ref, {
+    required String title,
+    required List<WorkoutStep> steps,
+    required String sportId,
+  }) async {
+    final minutes = await Navigator.of(context).push<int>(MaterialPageRoute(
       builder: (_) => ActiveWorkoutScreen(title: title, steps: steps),
     ));
+    if (minutes == null) return;
+    final weight = ref.read(userWeightProvider) ?? 70;
+    final sport = sportById(sportId);
+    await ref.read(activityLogProvider.notifier).add(
+        title: title, sport: sport, minutes: minutes, weightKg: weight);
+    if (context.mounted) {
+      final kcal = sport.caloriesFor(minutes: minutes, weightKg: weight);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('$title kaydedildi • $minutes dk • $kcal kcal 🔥')));
+    }
   }
+
+  static String _sportFor(ProgramCategory c) => switch (c) {
+        ProgramCategory.gym || ProgramCategory.home => 'gym',
+        ProgramCategory.cardio => 'hiit',
+        ProgramCategory.flexibility => 'yoga',
+      };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final plans = ref.watch(myWorkoutPlansProvider).valueOrNull ?? const [];
+    final filter = ref.watch(programFilterProvider);
+    final programs = [
+      for (final p in workoutPrograms)
+        if (filter == null || p.category == filter) p
+    ];
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: RefreshIndicator(
         color: AppColors.primary,
-        onRefresh: () => ref.refresh(myWorkoutPlansProvider.future),
+        onRefresh: () async {
+          ref.invalidate(myWorkoutPlansProvider);
+          await ref.read(activityLogProvider.notifier).refresh();
+        },
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
@@ -64,31 +103,26 @@ class ActivityScreen extends ConsumerWidget {
               backgroundColor: AppColors.background,
               surfaceTintColor: Colors.transparent,
               automaticallyImplyLeading: false,
-              title: Text(
-                'Aktivite',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.textPrimary,
-                ),
-              ),
+              title: Text('Aktivite',
+                  style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.textPrimary)),
             ),
             const SliverPadding(
-              padding: EdgeInsets.fromLTRB(20, 8, 20, 20),
+              padding: EdgeInsets.fromLTRB(20, 8, 20, 16),
               sliver: SliverToBoxAdapter(child: _StepsCard()),
             ),
+
+            // ── Bugünkü aktiviteler ───────────────────────────────────────
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              sliver: SliverToBoxAdapter(child: _TodayActivities()),
+            ),
+
+            // ── Koçun planları ───────────────────────────────────────────
             if (plans.isNotEmpty) ...[
-              const SliverPadding(
-                padding: EdgeInsets.fromLTRB(24, 0, 24, 10),
-                sliver: SliverToBoxAdapter(
-                  child: Text('KOÇUNUN PLANLARI',
-                      style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.1)),
-                ),
-              ),
+              const _SectionHeader('KOÇUNUN PLANLARI'),
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 sliver: SliverList(
@@ -110,8 +144,8 @@ class ActivityScreen extends ConsumerWidget {
                                 borderRadius: BorderRadius.circular(18)),
                             leading: const CircleAvatar(
                               backgroundColor: AppColors.surface,
-                              child: Icon(Icons.fitness_center,
-                                  color: AppColors.primary),
+                              child: Icon(Icons.support_agent_rounded,
+                                  color: AppColors.secondary),
                             ),
                             title: Text(title,
                                 style: const TextStyle(
@@ -129,7 +163,8 @@ class ActivityScreen extends ConsumerWidget {
                                 color: AppColors.primary, size: 36),
                             onTap: count == 0
                                 ? null
-                                : () => _start(context, title, steps),
+                                : () => startWorkout(context, ref,
+                                    title: title, steps: steps, sportId: 'gym'),
                           ),
                         ),
                       );
@@ -138,14 +173,114 @@ class ActivityScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-              const SliverToBoxAdapter(child: SizedBox(height: 10)),
             ],
+
+            // ── Hazır programlar ─────────────────────────────────────────
+            const _SectionHeader('ANTRENMAN PROGRAMLARI'),
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 40,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  children: [
+                    _FilterChip(
+                        label: 'Tümü',
+                        selected: filter == null,
+                        onTap: () => ref
+                            .read(programFilterProvider.notifier)
+                            .state = null),
+                    for (final c in ProgramCategory.values)
+                      _FilterChip(
+                          label: c.label,
+                          selected: filter == c,
+                          onTap: () => ref
+                              .read(programFilterProvider.notifier)
+                              .state = c),
+                  ],
+                ),
+              ),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 14)),
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 176,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: programs.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                  itemBuilder: (context, i) {
+                    final p = programs[i];
+                    return _ProgramCard(
+                      program: p,
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => ProgramDetailScreen(
+                            program: p,
+                            onStart: () => startWorkout(context, ref,
+                                title: p.title,
+                                steps: p.toSteps(),
+                                sportId: _sportFor(p.category)),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+
+            // ── Kütüphane ───────────────────────────────────────────────
+            const _SectionHeader('KEŞFET'),
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               sliver: SliverToBoxAdapter(
-                child: _QuickWorkoutCard(
-                  onStart: () => _start(
-                      context, 'Hızlı Tüm Vücut', quickFullBodyWorkout),
+                child: Material(
+                  color: AppColors.cardSurface,
+                  borderRadius: BorderRadius.circular(20),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => const ExerciseLibraryScreen())),
+                    child: Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withAlpha(28),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Icon(Icons.menu_book_rounded,
+                                color: AppColors.primary),
+                          ),
+                          const SizedBox(width: 14),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Egzersiz Kütüphanesi',
+                                    style: TextStyle(
+                                        color: AppColors.textPrimary,
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 16)),
+                                SizedBox(height: 2),
+                                Text(
+                                    'Her hareketin nasıl yapıldığını adım adım öğren',
+                                    style: TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 12)),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.chevron_right,
+                              color: AppColors.textSecondary),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -156,6 +291,322 @@ class ActivityScreen extends ConsumerWidget {
     );
   }
 }
+
+class _SectionHeader extends StatelessWidget {
+  final String text;
+  const _SectionHeader(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+      sliver: SliverToBoxAdapter(
+        child: Text(text,
+            style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.1)),
+      ),
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _FilterChip(
+      {required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: selected,
+        onSelected: (_) => onTap(),
+        showCheckmark: false,
+        selectedColor: AppColors.primary,
+        backgroundColor: AppColors.cardSurface,
+        side: BorderSide.none,
+        labelStyle: TextStyle(
+          color: selected ? AppColors.background : AppColors.textPrimary,
+          fontWeight: FontWeight.w700,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+}
+
+class _ProgramCard extends StatelessWidget {
+  final WorkoutProgram program;
+  final VoidCallback onTap;
+  const _ProgramCard({required this.program, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = program;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 230,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: p.gradient,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(22),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(p.icon, color: Colors.white, size: 26),
+                const Spacer(),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withAlpha(60),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(p.level.label,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700)),
+                ),
+              ],
+            ),
+            const Spacer(),
+            Text(p.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 17,
+                    height: 1.15)),
+            const SizedBox(height: 4),
+            Text('${p.estimatedMinutes} dk • ${p.items.length} egzersiz',
+                style: TextStyle(
+                    color: Colors.white.withAlpha(230), fontSize: 12)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Bugünkü aktiviteler ──────────────────────────────────────────────────────
+
+class _TodayActivities extends ConsumerWidget {
+  Future<void> _addSheet(BuildContext context, WidgetRef ref) async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => const _LogActivitySheet(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final entries = ref.watch(activityLogProvider);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.cardSurface,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text('Bugünkü Aktiviteler',
+                    style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16)),
+              ),
+              TextButton.icon(
+                onPressed: () => _addSheet(context, ref),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Spor ekle'),
+              ),
+            ],
+          ),
+          if (entries.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                'Henüz aktivite yok. Koşu, yüzme, futbol… ne yaptıysan ekle; '
+                'yaktığın kalori günlük bütçene eklenir.',
+                style: TextStyle(
+                    color: AppColors.textSecondary, fontSize: 13, height: 1.4),
+              ),
+            )
+          else
+            for (final e in entries)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withAlpha(25),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(e.sport.icon, color: AppColors.primary, size: 20),
+                ),
+                title: Text(e.title,
+                    style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w600)),
+                subtitle: Text('${e.minutes} dk',
+                    style: const TextStyle(color: AppColors.textSecondary)),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('+${e.calories} kcal',
+                        style: const TextStyle(
+                            color: AppColors.carbs,
+                            fontWeight: FontWeight.w800)),
+                    IconButton(
+                      tooltip: 'Sil',
+                      visualDensity: VisualDensity.compact,
+                      icon: const Icon(Icons.close,
+                          size: 18, color: AppColors.textSecondary),
+                      onPressed: () =>
+                          ref.read(activityLogProvider.notifier).remove(e.id),
+                    ),
+                  ],
+                ),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LogActivitySheet extends ConsumerStatefulWidget {
+  const _LogActivitySheet();
+
+  @override
+  ConsumerState<_LogActivitySheet> createState() => _LogActivitySheetState();
+}
+
+class _LogActivitySheetState extends ConsumerState<_LogActivitySheet> {
+  Sport _sport = sports.first;
+  double _minutes = 30;
+
+  @override
+  Widget build(BuildContext context) {
+    final weight = ref.watch(userWeightProvider) ?? 70;
+    final kcal = _sport.caloriesFor(minutes: _minutes.round(), weightKg: weight);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Aktivite ekle',
+              style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final s in sports)
+                ChoiceChip(
+                  avatar: Icon(s.icon,
+                      size: 18,
+                      color: _sport == s
+                          ? AppColors.background
+                          : AppColors.textSecondary),
+                  label: Text(s.name),
+                  selected: _sport == s,
+                  showCheckmark: false,
+                  onSelected: (_) => setState(() => _sport = s),
+                  selectedColor: AppColors.primary,
+                  backgroundColor: AppColors.cardSurface,
+                  side: BorderSide.none,
+                  labelStyle: TextStyle(
+                    color: _sport == s
+                        ? AppColors.background
+                        : AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Süre',
+                  style: TextStyle(color: AppColors.textSecondary)),
+              Text('${_minutes.round()} dk',
+                  style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w800)),
+            ],
+          ),
+          Slider(
+            value: _minutes,
+            min: 5,
+            max: 180,
+            divisions: 35,
+            activeColor: AppColors.primary,
+            onChanged: (v) => setState(() => _minutes = v),
+          ),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.carbs.withAlpha(22),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.local_fire_department,
+                    color: AppColors.carbs),
+                const SizedBox(width: 8),
+                Text('≈ $kcal kcal yakılır',
+                    style: const TextStyle(
+                        color: AppColors.carbs, fontWeight: FontWeight.w800)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () async {
+              await ref.read(activityLogProvider.notifier).add(
+                  title: _sport.name,
+                  sport: _sport,
+                  minutes: _minutes.round(),
+                  weightKg: weight);
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('Kaydet'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Adım kartı ───────────────────────────────────────────────────────────────
 
 class _StepsCard extends ConsumerWidget {
   const _StepsCard();
@@ -180,18 +631,17 @@ class _StepsCard extends ConsumerWidget {
                 const Icon(Icons.directions_walk,
                     size: 40, color: AppColors.textSecondary),
                 const SizedBox(height: 12),
-                const Text(
-                  'Adım sayar kullanılamıyor',
-                  style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.bold),
-                ),
+                const Text('Adım sayar kullanılamıyor',
+                    style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.bold)),
                 const SizedBox(height: 6),
                 const Text(
                   'Fiziksel aktivite iznini verdiğinden emin ol. '
                   'Adım sayımı yalnızca Android ve iOS cihazlarda çalışır.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  style:
+                      TextStyle(color: AppColors.textSecondary, fontSize: 12),
                 ),
                 TextButton.icon(
                   onPressed: () =>
@@ -305,76 +755,6 @@ class _Metric extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _QuickWorkoutCard extends StatelessWidget {
-  final VoidCallback onStart;
-  const _QuickWorkoutCard({required this.onStart});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1E2638), Color(0xFF14352C)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: AppColors.primary.withAlpha(60)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Text(
-              'EKİPMANSIZ',
-              style: TextStyle(
-                color: AppColors.background,
-                fontWeight: FontWeight.w900,
-                fontSize: 12,
-                letterSpacing: 1.5,
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Hızlı Tüm Vücut',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 32,
-              height: 1.1,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            '10 dakika • 10 hareket • 40 sn çalış / 20 sn dinlen',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: ElevatedButton(
-              onPressed: onStart,
-              child: const Text('ANTRENMANA BAŞLA'),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
