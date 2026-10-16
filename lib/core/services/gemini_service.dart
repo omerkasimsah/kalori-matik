@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config/app_config.dart';
 
@@ -52,20 +53,73 @@ Fotoğrafta yiyecek yoksa "name" alanını "Yiyecek bulunamadı" ve tüm sayıla
 Değerler tahmini olabilir. Rakamlar DAIMA sayı türünde olsun (string değil).
 ''';
 
-  /// Fotoğrafı Gemini Vision API'ye gönderir ve besin değerlerini döndürür.
+  /// Fotoğrafı analiz eder.
+  ///
+  /// Yayın sürümünde istek Supabase Edge Function (`analyze-food`) üzerinden
+  /// gider; Gemini anahtarı sunucuda kalır. Geliştirme sırasında
+  /// `--dart-define=GEMINI_API_KEY=...` verilirse doğrudan Gemini çağrılır.
   static Future<FoodAnalysis> analyzeFoodImage(
     String base64Image, {
     String mimeType = 'image/jpeg',
     http.Client? client,
-  }) async {
-    if (!AppConfig.hasGeminiKey) {
-      throw const GeminiException(
-        'Gemini API anahtarı tanımlı değil. Uygulamayı '
-        '--dart-define=GEMINI_API_KEY=... ile çalıştırın '
-        'veya öğünü elle ekleyin.',
+  }) {
+    if (AppConfig.hasGeminiKey) {
+      return _analyzeDirect(base64Image, mimeType: mimeType, client: client);
+    }
+    if (AppConfig.isDemo) {
+      return Future.delayed(
+        const Duration(seconds: 2),
+        () => const FoodAnalysis(
+          name: 'Izgara tavuk ve salata',
+          calories: 480,
+          protein: 42,
+          carbs: 18,
+          fat: 26,
+          insight: 'Proteini yüksek, dengeli bir tabak!',
+        ),
       );
     }
+    return _analyzeViaServer(base64Image, mimeType);
+  }
 
+  static Future<FoodAnalysis> _analyzeViaServer(
+      String base64Image, String mimeType) async {
+    try {
+      final res = await Supabase.instance.client.functions
+          .invoke('analyze-food', body: {
+        'image': base64Image,
+        'mimeType': mimeType,
+      }).timeout(_timeout);
+      final data = res.data;
+      final text = data is Map ? data['text'] : null;
+      if (text is! String) {
+        throw const GeminiException('Yapay zeka yanıtı okunamadı.');
+      }
+      return parseFoodJson(text);
+    } on GeminiException {
+      rethrow;
+    } on FunctionException catch (e) {
+      throw GeminiException(switch (e.status) {
+        401 || 403 => 'Oturum süresi dolmuş. Tekrar giriş yapın.',
+        413 => 'Fotoğraf çok büyük. Daha küçük bir fotoğraf deneyin.',
+        429 => 'Çok fazla istek gönderildi. Biraz bekleyip tekrar deneyin.',
+        >= 500 => 'Yapay zeka servisi şu an yanıt vermiyor. Daha sonra deneyin.',
+        _ => 'Analiz yapılamadı. Öğünü elle ekleyebilirsiniz.',
+      });
+    } on TimeoutException {
+      throw const GeminiException(
+          'Analiz zaman aşımına uğradı. Lütfen tekrar deneyin.');
+    } catch (_) {
+      throw const GeminiException(
+          'Analiz yapılamadı. İnternet bağlantınızı kontrol edin veya öğünü elle ekleyin.');
+    }
+  }
+
+  static Future<FoodAnalysis> _analyzeDirect(
+    String base64Image, {
+    required String mimeType,
+    http.Client? client,
+  }) async {
     final url = Uri.parse(
       'https://generativelanguage.googleapis.com/v1beta/models/'
       '${AppConfig.geminiModel}:generateContent',

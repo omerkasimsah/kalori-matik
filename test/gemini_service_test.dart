@@ -70,11 +70,10 @@ void main() {
     });
   });
 
-  test('API anahtarı yoksa istek atılmadan hata verir', () async {
+  test('anahtar ve sunucu yoksa kullanıcıya anlaşılır hata verir', () async {
     await expectLater(
       GeminiService.analyzeFoodImage('AAAA'),
-      throwsA(isA<GeminiException>().having(
-          (e) => e.message, 'message', contains('API anahtarı'))),
+      throwsA(isA<GeminiException>()),
     );
   });
 }

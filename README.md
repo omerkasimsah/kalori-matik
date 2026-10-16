@@ -75,20 +75,23 @@ Supabase SQL Editor'de sırasıyla çalıştırın:
 4. `supabase_phase3.sql` — öğün düzenleme/silme izinleri, KaloriID ile danışan arama fonksiyonu, indeksler
 5. `supabase_phase4.sql` — kilo takibi, koçun öğüne yorumu, hesap silme fonksiyonu
 
-### 3. Anahtarları Tanımlayın
-Gemini anahtarı gizlidir ve koda yazılmaz; derleme sırasında verilir:
+### 3. Gemini Anahtarı (Edge Function)
+Yayın sürümünde Gemini anahtarı **uygulamanın içinde bulunmaz**; Supabase Edge Function'da saklanır ([supabase/functions/analyze-food](supabase/functions/analyze-food/index.ts)). [Supabase CLI](https://supabase.com/docs/guides/cli) ile bir kez kurun:
 
 ```bash
-flutter run --dart-define=GEMINI_API_KEY=YOUR_GEMINI_API_KEY
+supabase login
+supabase link --project-ref <proje-ref>
+supabase secrets set GEMINI_API_KEY=<anahtarın>
+supabase functions deploy analyze-food
 ```
 
-Kendi Supabase projenizi kullanmak için `SUPABASE_URL` ve `SUPABASE_ANON_KEY` değerlerini de aynı şekilde verebilirsiniz. Alternatif olarak `.env.example` dosyasını `.env` olarak kopyalayıp doldurun:
+Yalnızca giriş yapmış kullanıcılar fonksiyonu çağırabilir. Geliştirme sırasında Edge Function kurmadan denemek için anahtarı doğrudan verebilirsiniz (bu anahtar **yayın derlemesine eklenmemelidir**):
 
 ```bash
-flutter run --dart-define-from-file=.env
+flutter run --dart-define=GEMINI_API_KEY=ANAHTAR
 ```
 
-> Gemini anahtarı yoksa uygulama yine çalışır; fotoğraf analizi yerine öğünleri elle ekleyebilirsiniz.
+Kendi Supabase projeniz için `SUPABASE_URL` ve `SUPABASE_ANON_KEY` değerlerini de `--dart-define` ile verebilirsiniz. Anahtar yoksa ve fonksiyon kurulu değilse uygulama çalışmaya devam eder; öğünler elle eklenir.
 
 ### 4. Demo Modu (hesap ve internet gerektirmez)
 Arayüzü sahte verilerle denemek veya ekran görüntüsü almak için:
@@ -102,7 +105,7 @@ flutter run -d chrome --dart-define=DEMO_MODE=coach    # koç / diyetisyen
 `android/key.properties.example` dosyasındaki adımlarla imza anahtarı oluşturun, ardından:
 
 ```bash
-flutter build appbundle --release --dart-define-from-file=.env
+flutter build appbundle --release   # GEMINI_API_KEY VERMEYİN (Edge Function kullanılır)
 ```
 
 ### 6. Testler
