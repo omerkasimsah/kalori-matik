@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/supabase_service.dart';
 import '../../home/models/meal_log.dart';
+import '../widgets/progress_charts.dart';
 
 // ────────────────────────────────────────────────────────────────────────────
 // Danışan Detay Ekranı — Koç/Diyetisyen perspektifinden tam yönetim
@@ -21,6 +22,8 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
 
   bool _isLoading = true;
   List<MealLog> _todayMeals = [];
+  List<DailyTotal> _week = [];
+  List<WeightEntry> _weights = [];
   List<Map<String, dynamic>> _workoutPlans = [];
   List<Map<String, dynamic>> _nutritionPlan = [];
   List<Map<String, dynamic>> _coachNotes = [];
@@ -70,21 +73,27 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
     try {
       final clientId = widget.clientProfile['id'].toString();
       final results = await Future.wait([
-        SupabaseService.getClientTodayMeals(clientId),
+        SupabaseService.getMealsForUserSince(clientId, days: 7),
+        SupabaseService.getWeightLogs(userId: clientId),
         SupabaseService.getWorkoutPlans(clientId),
         SupabaseService.getNutritionPlan(clientId),
         SupabaseService.getCoachNotes(clientId),
       ]);
       if (mounted) {
         setState(() {
-          _todayMeals = results[0] as List<MealLog>;
-          _workoutPlans = results[1] as List<Map<String, dynamic>>;
-          _nutritionPlan = results[2] as List<Map<String, dynamic>>;
-          _coachNotes = results[3] as List<Map<String, dynamic>>;
+          final weekMeals = results[0] as List<MealLog>;
+          _week = DailyTotal.group(weekMeals, days: 7);
+          final n = DateTime.now();
+          final today = DateTime(n.year, n.month, n.day);
+          _todayMeals = weekMeals.where((m) => m.day == today).toList();
+          _weights = results[1] as List<WeightEntry>;
+          _workoutPlans = results[2] as List<Map<String, dynamic>>;
+          _nutritionPlan = results[3] as List<Map<String, dynamic>>;
+          _coachNotes = results[4] as List<Map<String, dynamic>>;
         });
       }
     } catch (e) {
-      _showError('Veri yüklenemedi: $e');
+      _showError('Veri yüklenemedi. Bağlantınızı kontrol edin.');
     }
     if (mounted) setState(() => _isLoading = false);
   }
@@ -592,7 +601,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
         headerSliverBuilder: (_, __) => [
           SliverAppBar(
             pinned: true,
-            expandedHeight: 160,
+            expandedHeight: 215,
             backgroundColor: AppColors.background,
             leading: const BackButton(color: AppColors.textPrimary),
             flexibleSpace: FlexibleSpaceBar(
@@ -600,7 +609,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
                 decoration: const BoxDecoration(
                   gradient: AppColors.primaryGradient,
                 ),
-                padding: const EdgeInsets.fromLTRB(20, 60, 20, 0),
+                padding: const EdgeInsets.fromLTRB(20, 60, 20, 56),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -627,7 +636,9 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'KaloriID: ${profile['kalori_id'] ?? '-'}',
+                            (profile['full_name'] as String?)?.isNotEmpty == true
+                                ? profile['full_name'] as String
+                                : 'KaloriID: ${profile['kalori_id'] ?? '-'}',
                             style: const TextStyle(
                                 color: AppColors.background,
                                 fontWeight: FontWeight.w900,
@@ -669,10 +680,10 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
               controller: _tabCtrl,
               indicatorColor: AppColors.primary,
               labelColor: AppColors.primary,
-              unselectedLabelColor: AppColors.background.withAlpha(160),
+              unselectedLabelColor: AppColors.textSecondary,
               labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
               tabs: const [
-                Tab(text: 'Bugün'),
+                Tab(text: 'Takip'),
                 Tab(text: 'Antrenman'),
                 Tab(text: 'Beslenme'),
                 Tab(text: 'Notlar'),
@@ -760,16 +771,65 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
             ],
           ),
           const SizedBox(height: 24),
+          const Text('SON 7 GÜN',
+              style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1)),
+          const SizedBox(height: 12),
+          CalorieWeekChart(totals: _week, target: _currentTdee),
+          const SizedBox(height: 24),
+          const Text('KİLO',
+              style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1)),
+          const SizedBox(height: 12),
+          WeightChart(entries: _weights),
+          const SizedBox(height: 24),
           const Text('BUGÜNKÜ ÖĞÜNLER',
               style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1)),
           const SizedBox(height: 12),
           if (_todayMeals.isEmpty)
             const _EmptyCard(icon: Icons.no_food, label: 'Henüz öğün girilmemiş')
           else
-            ..._todayMeals.map((m) => _MealCard(meal: m)),
+            ..._todayMeals.map((m) => _MealCard(meal: m, onComment: () => _commentOnMeal(m))),
         ],
       ),
     );
+  }
+
+  // ── Öğüne yorum ───────────────────────────────────────────────────────────
+  Future<void> _commentOnMeal(MealLog meal) async {
+    final ctrl = TextEditingController(text: meal.coachComment ?? '');
+    final text = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(meal.name),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          maxLines: 3,
+          maxLength: 200,
+          decoration: const InputDecoration(hintText: 'Öğün hakkında yorumun…'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('İptal')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            child: const Text('Kaydet'),
+          ),
+        ],
+      ),
+    );
+    if (text == null) return;
+    try {
+      await SupabaseService.setMealFeedback(meal.id, text);
+      if (!mounted) return;
+      setState(() {
+        _todayMeals = [
+          for (final m in _todayMeals)
+            m.id == meal.id ? m.copyWith(coachComment: text) : m
+        ];
+      });
+      _showSuccess(text.isEmpty ? 'Yorum silindi' : 'Yorum gönderildi');
+    } catch (_) {
+      _showError('Yorum kaydedilemedi. Phase 4 SQL çalıştırıldı mı?');
+    }
   }
 
   // ── Antrenman Sekmesi ─────────────────────────────────────────────────────
@@ -970,7 +1030,8 @@ class _StatCard extends StatelessWidget {
 
 class _MealCard extends StatelessWidget {
   final MealLog meal;
-  const _MealCard({required this.meal});
+  final VoidCallback onComment;
+  const _MealCard({required this.meal, required this.onComment});
 
   @override
   Widget build(BuildContext context) {
@@ -980,28 +1041,40 @@ class _MealCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.cardSurface,
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: Colors.black.withAlpha(6), blurRadius: 8)],
       ),
-      child: Row(children: [
-        Container(
-          width: 40, height: 40,
-          decoration: BoxDecoration(
-            color: const Color(0xFFFF6B35).withAlpha(20),
-            borderRadius: BorderRadius.circular(10),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(meal.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary)),
+            Text(
+              '${meal.time}${meal.protein != null ? '  •  P ${meal.protein!.toStringAsFixed(0)}g  K ${meal.carbs?.toStringAsFixed(0) ?? 0}g  Y ${meal.fat?.toStringAsFixed(0) ?? 0}g' : ''}',
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+            ),
+          ])),
+          Text('${meal.calories} kcal', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: AppColors.textPrimary)),
+          IconButton(
+            tooltip: 'Yorum yaz',
+            visualDensity: VisualDensity.compact,
+            onPressed: onComment,
+            icon: Icon(
+              meal.hasCoachComment ? Icons.chat_bubble : Icons.chat_bubble_outline,
+              size: 20,
+              color: meal.hasCoachComment ? AppColors.secondary : AppColors.textSecondary,
+            ),
           ),
-          child: const Icon(Icons.restaurant, color: Color(0xFFFF6B35), size: 20),
-        ),
-        const SizedBox(width: 12),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(meal.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-          if (meal.protein != null)
-            Text('P: ${meal.protein?.toStringAsFixed(0)}g • K: ${meal.carbs?.toStringAsFixed(0)}g • Y: ${meal.fat?.toStringAsFixed(0)}g',
-                style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
-        ])),
-        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Text('${meal.calories}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFFFF6B35))),
-          const Text('kcal', style: TextStyle(color: AppColors.textHint, fontSize: 10)),
         ]),
+        if (meal.hasCoachComment) ...[
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.secondary.withAlpha(20),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(meal.coachComment!, style: const TextStyle(color: AppColors.textPrimary, fontSize: 12)),
+          ),
+        ],
       ]),
     );
   }

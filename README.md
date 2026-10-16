@@ -19,7 +19,7 @@ KaloriMatik, günlük besin ve kalori takibini manuel arama listeleriyle vakit k
 - **💧 Su Takibi:** Kilonuza göre hesaplanan günlük hedef ve hızlı ekleme butonları.
 - **🏋️ Antrenman Zamanlayıcısı:** Ekipmansız 10 dakikalık hızlı antrenman veya koçunuzun atadığı planları adım adım, geri sayımlı uygulayın.
 - **📊 İstatistikler & Geçmiş:** 7/30 günlük kalori grafiği, günlük ortalama, hedefte kalınan gün sayısı, kayıt serisi ve gün gün gruplanmış 30 günlük geçmiş.
-- **🧑‍⚕️ Diyetisyen / Koç Modülü:** Profesyoneller danışanlarını KaloriID ile ekler; beslenme planı, antrenman planı ve not atar. Danışan bunları **"Koçum"** ekranında görür.
+- **🧑‍⚕️ Diyetisyen / Koç Modülü:** Panel danışanları "ilgi bekliyor / yolunda" durumuna göre sıralar (kayıt girmeyen veya hedefi aşan danışanlar üstte). Danışan detayında 7 günlük kalori, kilo grafiği, öğünlere yorum, beslenme/antrenman planı ve notlar bulunur. Danışan bunları ana sayfada ve **"Koçum"** ekranında görür.
 - **🌙 Modern Koyu Tema:** Tüm ekranlarda tutarlı, yüksek kontrastlı koyu arayüz.
 
 ---
@@ -73,6 +73,7 @@ Supabase SQL Editor'de sırasıyla çalıştırın:
 2. `supabase_phase25.sql` — KaloriID, koç bağlantıları
 3. `supabase_coach_module.sql` — antrenman / beslenme planları, koç notları
 4. `supabase_phase3.sql` — öğün düzenleme/silme izinleri, KaloriID ile danışan arama fonksiyonu, indeksler
+5. `supabase_phase4.sql` — kilo takibi, koçun öğüne yorumu, hesap silme fonksiyonu
 
 ### 3. Anahtarları Tanımlayın
 Gemini anahtarı gizlidir ve koda yazılmaz; derleme sırasında verilir:
@@ -89,7 +90,22 @@ flutter run --dart-define-from-file=.env
 
 > Gemini anahtarı yoksa uygulama yine çalışır; fotoğraf analizi yerine öğünleri elle ekleyebilirsiniz.
 
-### 4. Testler
+### 4. Demo Modu (hesap ve internet gerektirmez)
+Arayüzü sahte verilerle denemek veya ekran görüntüsü almak için:
+
+```bash
+flutter run -d chrome --dart-define=DEMO_MODE=client   # danışan
+flutter run -d chrome --dart-define=DEMO_MODE=coach    # koç / diyetisyen
+```
+
+### 5. Yayın (Google Play)
+`android/key.properties.example` dosyasındaki adımlarla imza anahtarı oluşturun, ardından:
+
+```bash
+flutter build appbundle --release --dart-define-from-file=.env
+```
+
+### 6. Testler
 ```bash
 flutter analyze
 flutter test

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../core/config/app_config.dart';
+import '../../home/widgets/progress_charts.dart';
 import '../../../core/services/supabase_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/calorie_calculator.dart';
@@ -178,6 +181,80 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     1.725: 'Aktif (haftada 6-7 gün)',
     1.9: 'Çok aktif (ağır iş / günde 2 antrenman)',
   };
+
+  int _weightRefresh = 0;
+
+  Future<void> _addWeight() async {
+    final ctrl = TextEditingController(
+        text: (_profile?['weight'] as num?)?.toStringAsFixed(1) ?? '');
+    final value = await showDialog<double>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Bugünkü kilon'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(labelText: 'Kilo (kg)'),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('İptal')),
+          ElevatedButton(
+            onPressed: () {
+              final v = double.tryParse(ctrl.text.replaceAll(',', '.'));
+              if (v != null && v >= 30 && v <= 300) Navigator.pop(ctx, v);
+            },
+            child: const Text('Kaydet'),
+          ),
+        ],
+      ),
+    );
+    if (value == null) return;
+    try {
+      await SupabaseService.addWeightLog(value);
+      ref.invalidate(userProfileProvider);
+      await _loadProfile();
+      if (mounted) setState(() => _weightRefresh++);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Kilo kaydedilemedi. Phase 4 SQL çalıştırıldı mı?',
+                style: TextStyle(color: AppColors.danger))));
+      }
+    }
+  }
+
+  Future<void> _deleteAccount() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hesap silinsin mi?'),
+        content: const Text(
+            'Hesabın, öğünlerin, kilo kayıtların ve koç bağlantıların kalıcı olarak silinir. Bu işlem geri alınamaz.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Vazgeç')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Kalıcı Olarak Sil',
+                  style: TextStyle(color: AppColors.danger))),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await SupabaseService.deleteMyAccount();
+      if (mounted) context.go('/login');
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Hesap silinemedi. Daha sonra tekrar deneyin.',
+                style: TextStyle(color: AppColors.danger))));
+      }
+    }
+  }
 
   String _goalLabel(String? goal) {
     switch (goal) {
@@ -560,6 +637,50 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ),
 
                   const SizedBox(height: 20),
+
+                  // ── Kilo Takibi ─────────────────────────────────────────
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Kilo Takibi',
+                          style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary)),
+                      TextButton.icon(
+                        onPressed: _addWeight,
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('Kilo ekle'),
+                      ),
+                    ],
+                  ),
+                  FutureBuilder<List<WeightEntry>>(
+                    key: ValueKey(_weightRefresh),
+                    future: SupabaseService.getWeightLogs(),
+                    builder: (context, snap) =>
+                        WeightChart(entries: snap.data ?? const []),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // ── Gizlilik ve Hesap ───────────────────────────────────
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.privacy_tip_outlined,
+                        color: AppColors.textSecondary),
+                    title: const Text('Gizlilik Politikası'),
+                    trailing: const Icon(Icons.open_in_new, size: 18),
+                    onTap: () => launchUrl(Uri.parse(AppConfig.privacyPolicyUrl),
+                        mode: LaunchMode.externalApplication),
+                  ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.delete_forever_outlined,
+                        color: AppColors.danger),
+                    title: const Text('Hesabımı Sil',
+                        style: TextStyle(color: AppColors.danger)),
+                    onTap: _deleteAccount,
+                  ),
+                  const SizedBox(height: 12),
 
                   // ── Çıkış Yap ──────────────────────────────────────────
                   OutlinedButton.icon(

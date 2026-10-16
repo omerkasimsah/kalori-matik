@@ -1,9 +1,91 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../core/theme/app_colors.dart';
+
+import '../../../core/config/app_config.dart';
 import '../../../core/services/supabase_service.dart';
+import '../../../core/theme/app_colors.dart';
+import '../models/meal_log.dart';
 import 'client_detail_screen.dart';
+
+/// Bir danışanın koç panelinde görünen özet durumu.
+class ClientStatus {
+  final Map<String, dynamic> connection;
+  final Map<String, dynamic> profile;
+  final List<MealLog> meals; // son 7 gün
+  final DateTime now;
+
+  ClientStatus(this.connection, this.profile, this.meals, this.now);
+
+  String get id => profile['id'].toString();
+
+  String get name {
+    final n = (profile['full_name'] as String?)?.trim();
+    return (n != null && n.isNotEmpty) ? n : 'KaloriID ${profile['kalori_id'] ?? '-'}';
+  }
+
+  int get target => (profile['daily_tdee'] as num?)?.toInt() ?? 2000;
+
+  DateTime get today => DateTime(now.year, now.month, now.day);
+
+  int get todayCalories =>
+      meals.where((m) => m.day == today).fold(0, (s, m) => s + m.calories);
+
+  DateTime? get lastLog => meals.isEmpty ? null : meals.first.createdAt;
+
+  /// Bugün dahil geriye doğru kayıt girilmeyen gün sayısı (bugün boşsa 1).
+  int get daysSinceLog {
+    final last = lastLog;
+    if (last == null) return 99;
+    return today.difference(DateTime(last.year, last.month, last.day)).inDays;
+  }
+
+  int get weekAverage {
+    final days = meals.map((m) => m.day).toSet().length;
+    if (days == 0) return 0;
+    return meals.fold<int>(0, (s, m) => s + m.calories) ~/ days;
+  }
+
+  /// attention: ilgi gerekir, good: yolunda, idle: henüz veri yok/bugün erken
+  ClientHealth get health {
+    if (daysSinceLog >= 2) return ClientHealth.attention;
+    if (weekAverage > target * 1.15 || todayCalories > target * 1.1) {
+      return ClientHealth.attention;
+    }
+    return ClientHealth.good;
+  }
+
+  String get reason {
+    if (lastLog == null) return 'Henüz hiç kayıt girmedi';
+    if (daysSinceLog >= 2) return '$daysSinceLog gündür kayıt yok';
+    if (todayCalories > target * 1.1) return 'Bugün hedefi aştı';
+    if (weekAverage > target * 1.15) return 'Haftalık ortalama hedefin üstünde';
+    if (todayCalories == 0) return 'Bugün henüz kayıt yok';
+    return 'Yolunda';
+  }
+}
+
+enum ClientHealth { attention, good }
+
+final clientStatusesProvider =
+    FutureProvider.autoDispose<List<ClientStatus>>((ref) async {
+  final connections = await SupabaseService.getMyClients();
+  final ids = [for (final c in connections) c['profiles']['id'].toString()];
+  final meals = await SupabaseService.getClientsMeals(ids, days: 7);
+  final now = DateTime.now();
+  final list = [
+    for (final c in connections)
+      ClientStatus(c, Map<String, dynamic>.from(c['profiles'] as Map),
+          meals[c['profiles']['id'].toString()] ?? [], now)
+  ];
+  // İlgi gerekenler üstte, sonra en uzun süredir sessiz olanlar
+  list.sort((a, b) {
+    final h = a.health.index.compareTo(b.health.index);
+    return h != 0 ? h : b.daysSinceLog.compareTo(a.daysSinceLog);
+  });
+  return list;
+});
 
 // ────────────────────────────────────────────────────────────────────────────
 // Profesyonel Panel — Koç & Diyetisyen Ana Ekranı
@@ -16,85 +98,37 @@ class ProfessionalDashboard extends ConsumerStatefulWidget {
       _ProfessionalDashboardState();
 }
 
-class _ProfessionalDashboardState
-    extends ConsumerState<ProfessionalDashboard>
-    with SingleTickerProviderStateMixin {
-  bool _isLoading = true;
-  List<Map<String, dynamic>> _clients = [];
-  final List<_FeedItem> _feedItems = [];
-  RealtimeChannel? _feedChannel;
-  late TabController _tabCtrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabCtrl = TabController(length: 2, vsync: this);
-    _loadClients().then((_) => _setupRealtimeFeed());
-  }
+class _ProfessionalDashboardState extends ConsumerState<ProfessionalDashboard> {
+  RealtimeChannel? _channel;
+  List<String> _subscribedIds = [];
 
   @override
   void dispose() {
-    _feedChannel?.unsubscribe();
-    _tabCtrl.dispose();
+    _channel?.unsubscribe();
     super.dispose();
   }
 
-  // ── Canlı Aktivite Feed'i ─────────────────────────────────────────────────
-  void _setupRealtimeFeed() {
-    final clientIds = _clients
-        .map((c) => c['profiles']['id'].toString())
-        .toList();
-    if (clientIds.isEmpty) return;
-
-    _feedChannel = SupabaseService.client
-        .channel('professional:meal_logs:${DateTime.now().millisecondsSinceEpoch}')
+  // Danışanlardan biri öğün eklediğinde listeyi yenile (demo modunda kapalı).
+  void _subscribe(List<String> ids) {
+    if (AppConfig.isDemo || ids.isEmpty || ids.join() == _subscribedIds.join()) {
+      return;
+    }
+    _subscribedIds = ids;
+    _channel?.unsubscribe();
+    _channel = SupabaseService.client
+        .channel('pro:meal_logs:${DateTime.now().millisecondsSinceEpoch}')
         .onPostgresChanges(
           event: PostgresChangeEvent.insert,
           schema: 'public',
           table: 'meal_logs',
           callback: (payload) {
-            final newLog = payload.newRecord;
-            final userId = newLog['user_id'].toString();
-            if (clientIds.contains(userId) && mounted) {
-              final clientProf = _clients.firstWhere(
-                  (c) => c['profiles']['id'].toString() == userId,
-                  orElse: () => {})['profiles'];
-              if (clientProf == null) return;
-              setState(() {
-                _feedItems.insert(
-                  0,
-                  _FeedItem(
-                    kaloriId: clientProf['kalori_id'] ?? '?',
-                    action: '${newLog['name']} • ${newLog['calories']} kcal',
-                    type: 'meal',
-                    time: DateTime.now(),
-                  ),
-                );
-                if (_feedItems.length > 30) _feedItems.removeLast();
-              });
+            if (ids.contains(payload.newRecord['user_id'].toString()) &&
+                mounted) {
+              ref.invalidate(clientStatusesProvider);
             }
           },
         )
         .subscribe();
-  }
-
-  Future<void> _loadClients() async {
-    setState(() => _isLoading = true);
-    try {
-      final clients = await SupabaseService.getMyClients();
-      if (mounted) setState(() => _clients = clients);
-    } catch (e) {
-      if (mounted) {
-        _showError('Danışanlar yüklenemedi: $e');
-      }
-    }
-    if (mounted) setState(() => _isLoading = false);
-  }
-
-  void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: AppColors.danger),
-    );
   }
 
   void _showAddClientDialog() {
@@ -102,72 +136,48 @@ class _ProfessionalDashboardState
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Danışan Ekle',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Danışan Ekle'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Danışanınızın Profil ekranında görünen 6 haneli KaloriID kodunu girin:',
+              'Danışanının Profil ekranında görünen 6 haneli KaloriID kodunu gir:',
               style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: ctrl,
               maxLength: 6,
+              autofocus: true,
               textCapitalization: TextCapitalization.characters,
               style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                  letterSpacing: 4),
+                  fontWeight: FontWeight.bold, fontSize: 22, letterSpacing: 5),
               textAlign: TextAlign.center,
-              decoration: InputDecoration(
-                hintText: 'A7B2X9',
-                counterText: '',
-                filled: true,
-                fillColor: AppColors.background,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide:
-                      const BorderSide(color: AppColors.primary, width: 2),
-                ),
-              ),
+              decoration:
+                  const InputDecoration(hintText: 'A7B2X9', counterText: ''),
             ),
           ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('İptal'),
-          ),
+              onPressed: () => Navigator.pop(ctx), child: const Text('İptal')),
           ElevatedButton(
             onPressed: () async {
               final val = ctrl.text.trim().toUpperCase();
               if (val.length != 6) return;
               Navigator.pop(ctx);
+              final messenger = ScaffoldMessenger.of(context);
               try {
                 await SupabaseService.addClientByKaloriId(val);
-                await _loadClients();
-                _feedChannel?.unsubscribe();
-                _setupRealtimeFeed();
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Danışan başarıyla eklendi! 🎉'),
-                      backgroundColor: AppColors.primary,
-                    ),
-                  );
-                }
+                ref.invalidate(clientStatusesProvider);
+                messenger.showSnackBar(const SnackBar(
+                    content: Text('Danışan eklendi 🎉')));
               } catch (e) {
-                if (mounted) {
-                  _showError(e.toString().replaceAll('Exception: ', ''));
-                }
+                messenger.showSnackBar(SnackBar(
+                  content: Text(e.toString().replaceAll('Exception: ', ''),
+                      style: const TextStyle(color: AppColors.danger)),
+                ));
               }
             },
             child: const Text('Ekle'),
@@ -177,367 +187,380 @@ class _ProfessionalDashboardState
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: NestedScrollView(
-        headerSliverBuilder: (_, __) => [
-          SliverAppBar(
-            expandedHeight: 0,
-            pinned: true,
-            backgroundColor: AppColors.background,
-            elevation: 0.5,
-            automaticallyImplyLeading: false,
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Profesyonel Panel',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                Text(
-                  '${_clients.length} danışan',
-                  style: const TextStyle(
-                      fontSize: 11, color: AppColors.textSecondary),
-                ),
-              ],
-            ),
-            actions: [
-              IconButton(
-                icon: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    gradient: AppColors.primaryGradient,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.person_add,
-                      color: AppColors.background, size: 18),
-                ),
-                tooltip: 'Danışan Ekle',
-                onPressed: _showAddClientDialog,
-              ),
-              const SizedBox(width: 8),
-            ],
-            bottom: TabBar(
-              controller: _tabCtrl,
-              indicatorColor: AppColors.primary,
-              labelColor: AppColors.primary,
-              unselectedLabelColor: AppColors.textSecondary,
-              labelStyle: const TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 13),
-              tabs: const [
-                Tab(text: 'Danışanlarım'),
-                Tab(text: 'Canlı Akış'),
-              ],
-            ),
-          ),
+  Future<void> _logout() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Çıkış yapılsın mı?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Vazgeç')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Çıkış Yap',
+                  style: TextStyle(color: AppColors.danger))),
         ],
-        body: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-            : TabBarView(
-                controller: _tabCtrl,
-                children: [
-                  _buildClientList(),
-                  _buildLiveFeed(),
-                ],
-              ),
       ),
     );
+    if (ok != true) return;
+    await SupabaseService.signOut();
+    if (mounted) context.go('/login');
   }
 
-  // ── Danışan Listesi ───────────────────────────────────────────────────────
-  Widget _buildClientList() {
-    if (_clients.isEmpty) return _buildEmptyState();
+  @override
+  Widget build(BuildContext context) {
+    final async = ref.watch(clientStatusesProvider);
+    final email = SupabaseService.getCurrentUser()?.email ?? '';
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _clients.length,
-      itemBuilder: (ctx, i) {
-        final conn = _clients[i];
-        final profile = conn['profiles'] as Map<String, dynamic>;
-        final goal = profile['goal'] ?? 'maintain';
-        final goalLabel = goal == 'lose'
-            ? 'Kilo Ver'
-            : goal == 'gain'
-                ? 'Kilo Al'
-                : 'Koru';
-        final goalColor = goal == 'lose'
-            ? AppColors.danger
-            : goal == 'gain'
-                ? AppColors.secondary
-                : AppColors.primary;
+    ref.listen(clientStatusesProvider, (_, next) {
+      final v = next.valueOrNull;
+      if (v != null) _subscribe([for (final c in v) c.id]);
+    });
 
-        return GestureDetector(
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) =>
-                    ClientDetailScreen(clientProfile: profile),
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showAddClientDialog,
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.background,
+        icon: const Icon(Icons.person_add_alt_1),
+        label: const Text('Danışan Ekle',
+            style: TextStyle(fontWeight: FontWeight.w800)),
+      ),
+      body: RefreshIndicator(
+        color: AppColors.primary,
+        onRefresh: () => ref.refresh(clientStatusesProvider.future),
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverAppBar(
+              pinned: true,
+              backgroundColor: AppColors.background,
+              surfaceTintColor: Colors.transparent,
+              automaticallyImplyLeading: false,
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Danışanlarım',
+                      style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.textPrimary)),
+                  Text(email,
+                      style: const TextStyle(
+                          fontSize: 11, color: AppColors.textSecondary)),
+                ],
               ),
-            );
-          },
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.cardSurface,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha(8),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
+              actions: [
+                IconButton(
+                  tooltip: 'Çıkış',
+                  icon: const Icon(Icons.logout, color: AppColors.textSecondary),
+                  onPressed: _logout,
                 ),
               ],
             ),
-            child: Row(
-              children: [
-                // Avatar
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: const BoxDecoration(
-                    gradient: AppColors.primaryGradient,
-                    shape: BoxShape.circle,
-                  ),
+            ...async.when(
+              loading: () => [
+                const SliverFillRemaining(
+                    child: Center(child: CircularProgressIndicator()))
+              ],
+              error: (_, __) => [
+                SliverFillRemaining(
                   child: Center(
-                    child: Text(
-                      (profile['kalori_id'] ?? '?').toString().substring(0, 1),
-                      style: const TextStyle(
-                          color: AppColors.background,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.cloud_off,
+                            size: 48, color: AppColors.textSecondary),
+                        const SizedBox(height: 12),
+                        const Text('Danışanlar yüklenemedi',
+                            style: TextStyle(color: AppColors.textSecondary)),
+                        TextButton(
+                          onPressed: () =>
+                              ref.invalidate(clientStatusesProvider),
+                          child: const Text('Tekrar dene'),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            'KaloriID: ${profile['kalori_id'] ?? '-'}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: goalColor.withAlpha(25),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              goalLabel,
-                              style: TextStyle(
-                                  color: goalColor,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${profile['age'] ?? '-'} yaş • ${profile['weight'] ?? '-'} kg • ${(profile['daily_tdee'] ?? 0)} kcal/gün',
-                        style: const TextStyle(
-                            color: AppColors.textSecondary, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.chevron_right_rounded,
-                    color: AppColors.textHint),
               ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // ── Canlı Feed ────────────────────────────────────────────────────────────
-  Widget _buildLiveFeed() {
-    return Column(
-      children: [
-        Container(
-          margin: const EdgeInsets.all(16),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: AppColors.textPrimary,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'Danışanlarınızın Canlı Aktivitesi',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: _feedItems.isEmpty
-              ? const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.bolt,
-                          size: 64, color: AppColors.textHint),
-                      SizedBox(height: 12),
-                      Text(
-                        'Henüz canlı aktivite yok',
-                        style: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontWeight: FontWeight.w500),
-                      ),
-                      SizedBox(height: 6),
-                      Text(
-                        'Danışanlarınız öğün girdiğinde burada görünür',
-                        style: TextStyle(
-                            color: AppColors.textHint, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: _feedItems.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (_, i) {
-                    final item = _feedItems[i];
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withAlpha(20),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.restaurant,
-                                color: AppColors.primary, size: 18),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item.kaloriId,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                      color: AppColors.primary),
-                                ),
-                                Text(
-                                  item.action,
-                                  style: const TextStyle(
-                                      color: AppColors.textSecondary,
-                                      fontSize: 12),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Text(
-                            '${item.time.hour.toString().padLeft(2, '0')}:${item.time.minute.toString().padLeft(2, '0')}',
-                            style: const TextStyle(
-                                color: AppColors.textHint, fontSize: 11),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 100,
-              height: 100,
-              decoration: const BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.people_outline,
-                  size: 52, color: AppColors.background),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Henüz danışanınız yok',
-              style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Danışanınızın profilindeki 6 haneli\nKaloriID kodunu girerek ekleyebilirsiniz.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textSecondary, height: 1.5),
-            ),
-            const SizedBox(height: 28),
-            ElevatedButton.icon(
-              onPressed: _showAddClientDialog,
-              icon: const Icon(Icons.add),
-              label: const Text('Danışan Ekle'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 32, vertical: 14),
-              ),
+              data: (clients) => clients.isEmpty
+                  ? [const SliverFillRemaining(child: _EmptyClients())]
+                  : _buildList(clients),
             ),
           ],
         ),
       ),
     );
   }
+
+  List<Widget> _buildList(List<ClientStatus> clients) {
+    final attention =
+        clients.where((c) => c.health == ClientHealth.attention).length;
+    final active = clients.where((c) => c.todayCalories > 0).length;
+
+    return [
+      SliverPadding(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+        sliver: SliverToBoxAdapter(
+          child: Row(
+            children: [
+              Expanded(
+                  child: _Summary(
+                      value: '${clients.length}',
+                      label: 'Danışan',
+                      color: AppColors.secondary)),
+              const SizedBox(width: 10),
+              Expanded(
+                  child: _Summary(
+                      value: '$active',
+                      label: 'Bugün aktif',
+                      color: AppColors.primary)),
+              const SizedBox(width: 10),
+              Expanded(
+                  child: _Summary(
+                      value: '$attention',
+                      label: 'İlgi bekliyor',
+                      color: attention > 0
+                          ? AppColors.warning
+                          : AppColors.textSecondary)),
+            ],
+          ),
+        ),
+      ),
+      SliverPadding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+        sliver: SliverList.separated(
+          itemCount: clients.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 10),
+          itemBuilder: (context, i) => _ClientCard(
+            status: clients[i],
+            onTap: () async {
+              await Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) =>
+                    ClientDetailScreen(clientProfile: clients[i].profile),
+              ));
+              ref.invalidate(clientStatusesProvider);
+            },
+          ),
+        ),
+      ),
+    ];
+  }
 }
 
-// ── Feed Item Modeli ─────────────────────────────────────────────────────────
-class _FeedItem {
-  final String kaloriId;
-  final String action;
-  final String type;
-  final DateTime time;
+class _Summary extends StatelessWidget {
+  final String value;
+  final String label;
+  final Color color;
+  const _Summary({required this.value, required this.label, required this.color});
 
-  const _FeedItem({
-    required this.kaloriId,
-    required this.action,
-    required this.type,
-    required this.time,
-  });
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppColors.cardSurface,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(value,
+              style: TextStyle(
+                  fontSize: 24, fontWeight: FontWeight.w900, color: color)),
+          const SizedBox(height: 2),
+          Text(label,
+              style: const TextStyle(
+                  fontSize: 11, color: AppColors.textSecondary)),
+        ],
+      ),
+    );
+  }
+}
+
+class _ClientCard extends StatelessWidget {
+  final ClientStatus status;
+  final VoidCallback onTap;
+  const _ClientCard({required this.status, required this.onTap});
+
+  static String _ago(DateTime? d) {
+    if (d == null) return '—';
+    final diff = DateTime.now().difference(d);
+    if (diff.inMinutes < 60) return '${diff.inMinutes} dk önce';
+    if (diff.inHours < 24) return '${diff.inHours} sa önce';
+    return '${diff.inDays} gün önce';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = status;
+    final attention = s.health == ClientHealth.attention;
+    final color = attention ? AppColors.warning : AppColors.primary;
+    final progress = (s.todayCalories / s.target).clamp(0.0, 1.0);
+    final goal = switch (s.profile['goal']) {
+      'lose' => 'Kilo veriyor',
+      'gain' => 'Kilo alıyor',
+      _ => 'Kilosunu koruyor',
+    };
+
+    return Material(
+      color: AppColors.cardSurface,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+                color: attention ? AppColors.warning.withAlpha(90) : Colors.transparent),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 22,
+                    backgroundColor: color.withAlpha(30),
+                    child: Text(
+                      s.name.replaceFirst('KaloriID ', '').characters.first.toUpperCase(),
+                      style: TextStyle(
+                          color: color, fontWeight: FontWeight.w900, fontSize: 18),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(s.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textPrimary)),
+                        Text(goal,
+                            style: const TextStyle(
+                                fontSize: 12, color: AppColors.textSecondary)),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: color.withAlpha(25),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(attention ? Icons.priority_high : Icons.check_circle,
+                          size: 14, color: color),
+                      const SizedBox(width: 4),
+                      Text(attention ? 'İlgi' : 'Yolunda',
+                          style: TextStyle(
+                              color: color,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800)),
+                    ]),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Bugün ${s.todayCalories} / ${s.target} kcal',
+                      style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13)),
+                  Text('Ort. ${s.weekAverage} kcal',
+                      style: const TextStyle(
+                          color: AppColors.textSecondary, fontSize: 12)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 8,
+                  backgroundColor: AppColors.surface,
+                  valueColor: AlwaysStoppedAnimation(
+                      s.todayCalories > s.target * 1.1
+                          ? AppColors.danger
+                          : AppColors.primary),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Icon(attention ? Icons.warning_amber_rounded : Icons.schedule,
+                      size: 15,
+                      color: attention ? AppColors.warning : AppColors.textSecondary),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      '${s.reason} • Son kayıt: ${_ago(s.lastLog)}',
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: attention
+                              ? AppColors.warning
+                              : AppColors.textSecondary),
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right,
+                      size: 20, color: AppColors.textSecondary),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyClients extends StatelessWidget {
+  const _EmptyClients();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 96,
+            height: 96,
+            decoration: const BoxDecoration(
+                gradient: AppColors.primaryGradient, shape: BoxShape.circle),
+            child: const Icon(Icons.people_outline,
+                size: 48, color: AppColors.background),
+          ),
+          const SizedBox(height: 24),
+          const Text('Henüz danışanın yok',
+              style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary)),
+          const SizedBox(height: 8),
+          const Text(
+            'Danışanından Profil ekranındaki 6 haneli KaloriID kodunu iste ve '
+            '"Danışan Ekle" ile bağlan. Öğünlerini, kilosunu ve ilerlemesini '
+            'buradan takip edebilirsin.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.textSecondary, height: 1.4),
+          ),
+        ],
+      ),
+    );
+  }
 }

@@ -96,6 +96,30 @@ class MealListItem extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
+                    if (meal.hasCoachComment) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.secondary.withAlpha(22),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.support_agent_rounded,
+                                size: 15, color: AppColors.secondary),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(meal.coachComment!,
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textPrimary)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     if (hasMacros) ...[
                       const SizedBox(height: 8),
                       Wrap(
