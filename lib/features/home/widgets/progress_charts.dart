@@ -45,7 +45,7 @@ class CalorieWeekChart extends StatelessWidget {
                   return Padding(
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(_weekDays[totals[i].date.weekday - 1],
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 10, color: AppColors.textSecondary)),
                   );
                 },
@@ -57,7 +57,7 @@ class CalorieWeekChart extends StatelessWidget {
               getTooltipColor: (_) => AppColors.surface,
               getTooltipItem: (g, _, __, ___) => BarTooltipItem(
                 '${totals[g.x].calories} kcal',
-                const TextStyle(
+                TextStyle(
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.w700,
                     fontSize: 12),
@@ -115,7 +115,7 @@ class WeightChart extends StatelessWidget {
           color: AppColors.cardSurface,
           borderRadius: BorderRadius.circular(18),
         ),
-        child: const Text('Grafik için en az 2 kilo kaydı gerekli',
+        child: Text('Grafik için en az 2 kilo kaydı gerekli',
             style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
       );
     }
@@ -143,7 +143,7 @@ class WeightChart extends StatelessWidget {
             child: Row(
               children: [
                 Text('${ws.last.toStringAsFixed(1)} kg',
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.w900,
                         fontSize: 20)),
@@ -167,7 +167,7 @@ class WeightChart extends StatelessWidget {
                   drawVerticalLine: false,
                   horizontalInterval: interval,
                   getDrawingHorizontalLine: (_) =>
-                      const FlLine(color: AppColors.divider, strokeWidth: 1),
+                      FlLine(color: AppColors.divider, strokeWidth: 1),
                 ),
                 borderData: FlBorderData(show: false),
                 titlesData: FlTitlesData(
@@ -180,7 +180,7 @@ class WeightChart extends StatelessWidget {
                       reservedSize: 36,
                       interval: interval,
                       getTitlesWidget: (v, _) => Text(v.toStringAsFixed(0),
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 10, color: AppColors.textSecondary)),
                     ),
                   ),
@@ -191,7 +191,7 @@ class WeightChart extends StatelessWidget {
                     getTooltipItems: (spots) => [
                       for (final s in spots)
                         LineTooltipItem('${s.y.toStringAsFixed(1)} kg',
-                            const TextStyle(
+                            TextStyle(
                                 color: AppColors.textPrimary,
                                 fontWeight: FontWeight.w700)),
                     ],

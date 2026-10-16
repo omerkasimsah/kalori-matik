@@ -32,13 +32,13 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
   late int _stepTarget;
 
   // Egzersiz kategori tanımları
-  static const _exerciseCategories = [
-    _ExCat('Güç / Ağırlık', Icons.fitness_center, Color(0xFF3D5AF1)),
-    _ExCat('Kardio', Icons.directions_run, Color(0xFFFF6B35)),
-    _ExCat('HIIT', Icons.bolt, Color(0xFFFF4D6D)),
-    _ExCat('Esneklik', Icons.self_improvement, Color(0xFF8B5CF6)),
-    _ExCat('Fonksiyonel', Icons.sports_gymnastics, Color(0xFF00C896)),
-    _ExCat('Serbest', Icons.edit, Color(0xFF6B7694)),
+  static final _exerciseCategories = [
+    _ExCat('Güç / Ağırlık', Icons.fitness_center, AppColors.primary),
+    _ExCat('Kardio', Icons.directions_run, AppColors.primary),
+    _ExCat('HIIT', Icons.bolt, AppColors.primary),
+    _ExCat('Esneklik', Icons.self_improvement, AppColors.primary),
+    _ExCat('Fonksiyonel', Icons.sports_gymnastics, AppColors.primary),
+    _ExCat('Serbest', Icons.edit, AppColors.primary),
   ];
 
   static const _mealTimes = [
@@ -46,11 +46,11 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
     'Ara Öğün 1', 'Ara Öğün 2', 'Egzersiz Öncesi', 'Egzersiz Sonrası',
   ];
 
-  static const _noteCategories = [
+  static final _noteCategories = [
     _NoteCat('Genel', Icons.notes, AppColors.primary),
-    _NoteCat('Beslenme', Icons.restaurant, Color(0xFFFF6B35)),
-    _NoteCat('Antrenman', Icons.fitness_center, Color(0xFF3D5AF1)),
-    _NoteCat('Motivasyon', Icons.star, Color(0xFFFFB347)),
+    _NoteCat('Beslenme', Icons.restaurant, AppColors.primary),
+    _NoteCat('Antrenman', Icons.fitness_center, AppColors.primary),
+    _NoteCat('Motivasyon', Icons.star, AppColors.primary),
   ];
 
   @override
@@ -218,7 +218,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
               const SizedBox(height: 12),
               _SheetField(ctrl: descCtrl, label: 'Açıklama (opsiyonel)', hint: 'Notlar...', maxLines: 2),
               const SizedBox(height: 12),
-              const Text('Gün', style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.bold)),
+              Text('Gün', style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -238,7 +238,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
                       ),
                       child: Text(d,
                           style: TextStyle(
-                            color: sel ? Colors.white : AppColors.textSecondary,
+                            color: sel ? AppColors.onPrimary : AppColors.textSecondary,
                             fontWeight: sel ? FontWeight.bold : FontWeight.normal,
                             fontSize: 12,
                           )),
@@ -306,7 +306,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Kategori seçimi
-                const Text('Hareket Türü', style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.bold)),
+                Text('Hareket Türü', style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -323,11 +323,11 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Row(children: [
-                            Icon(c.icon, color: sel ? Colors.white : c.color, size: 14),
+                            Icon(c.icon, color: sel ? AppColors.onPrimary : c.color, size: 14),
                             const SizedBox(width: 6),
                             Text(c.label,
                                 style: TextStyle(
-                                  color: sel ? Colors.white : c.color,
+                                  color: sel ? AppColors.onPrimary : c.color,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
                                 )),
@@ -339,7 +339,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
                 ),
                 const SizedBox(height: 16),
                 // Egzersiz adı + öneriler
-                const Text('Egzersiz', style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.bold)),
+                Text('Egzersiz', style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 6),
                 _SheetField(ctrl: nameCtrl, label: 'Egzersiz Adı', hint: 'ör. Bench Press'),
                 const SizedBox(height: 6),
@@ -435,7 +435,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Öğün Zamanı', style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.bold)),
+              Text('Öğün Zamanı', style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -447,12 +447,12 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: sel ? const Color(0xFFFF6B35) : const Color(0xFFFF6B35).withAlpha(15),
+                        color: sel ? AppColors.primary : AppColors.primary.withAlpha(15),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(t,
                           style: TextStyle(
-                            color: sel ? Colors.white : const Color(0xFFFF6B35),
+                            color: sel ? AppColors.onPrimary : AppColors.primary,
                             fontWeight: sel ? FontWeight.bold : FontWeight.normal,
                             fontSize: 12,
                           )),
@@ -479,7 +479,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
               const SizedBox(height: 20),
               _PrimaryButton(
                 label: 'Öğünü Plana Ekle',
-                color: const Color(0xFFFF6B35),
+                color: AppColors.primary,
                 onTap: () async {
                   if (nameCtrl.text.trim().isEmpty) return;
                   Navigator.pop(ctx);
@@ -519,7 +519,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Kategori', style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.bold)),
+              Text('Kategori', style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               Row(
                 children: _noteCategories.map((nc) {
@@ -535,11 +535,11 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Column(children: [
-                          Icon(nc.icon, color: sel ? Colors.white : nc.color, size: 18),
+                          Icon(nc.icon, color: sel ? AppColors.onPrimary : nc.color, size: 18),
                           const SizedBox(height: 4),
                           Text(nc.label,
                               style: TextStyle(
-                                color: sel ? Colors.white : nc.color,
+                                color: sel ? AppColors.onPrimary : nc.color,
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
                               )),
@@ -563,7 +563,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                    borderSide: BorderSide(color: AppColors.primary, width: 2),
                   ),
                 ),
               ),
@@ -603,10 +603,10 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
             pinned: true,
             expandedHeight: 215,
             backgroundColor: AppColors.background,
-            leading: const BackButton(color: AppColors.textPrimary),
+            leading: BackButton(color: AppColors.textPrimary),
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: AppColors.primaryGradient,
                 ),
                 padding: const EdgeInsets.fromLTRB(20, 60, 20, 56),
@@ -623,7 +623,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
                       child: Center(
                         child: Text(
                           (profile['kalori_id'] ?? '?').toString().substring(0, 1),
-                          style: const TextStyle(
+                          style: TextStyle(
                               color: AppColors.background,
                               fontWeight: FontWeight.w900,
                               fontSize: 24),
@@ -639,7 +639,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
                             (profile['full_name'] as String?)?.isNotEmpty == true
                                 ? profile['full_name'] as String
                                 : 'KaloriID: ${profile['kalori_id'] ?? '-'}',
-                            style: const TextStyle(
+                            style: TextStyle(
                                 color: AppColors.background,
                                 fontWeight: FontWeight.w900,
                                 fontSize: 18),
@@ -669,7 +669,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
                           color: AppColors.background.withAlpha(30),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.edit, color: AppColors.background, size: 18),
+                        child: Icon(Icons.edit, color: AppColors.background, size: 18),
                       ),
                     ),
                   ],
@@ -692,7 +692,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
           ),
         ],
         body: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+            ? Center(child: CircularProgressIndicator(color: AppColors.primary))
             : TabBarView(
                 controller: _tabCtrl,
                 children: [
@@ -726,7 +726,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
               label: 'Tüketilen',
               value: '$consumed kcal',
               icon: Icons.restaurant,
-              color: const Color(0xFFFF6B35),
+              color: AppColors.primary,
             )),
           ]),
           const SizedBox(height: 12),
@@ -742,7 +742,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
               label: 'Adım Hedefi',
               value: '$_stepTarget adım',
               icon: Icons.directions_walk,
-              color: const Color(0xFF8B5CF6),
+              color: AppColors.primary,
             )),
           ]),
           const SizedBox(height: 20),
@@ -753,9 +753,9 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Kalori İlerlemesi', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                  Text('Kalori İlerlemesi', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
                   Text('${((consumed / _currentTdee) * 100).clamp(0, 100).round()}%',
-                      style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                      style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
                 ],
               ),
               const SizedBox(height: 8),
@@ -771,17 +771,17 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
             ],
           ),
           const SizedBox(height: 24),
-          const Text('SON 7 GÜN',
+          Text('SON 7 GÜN',
               style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1)),
           const SizedBox(height: 12),
           CalorieWeekChart(totals: _week, target: _currentTdee),
           const SizedBox(height: 24),
-          const Text('KİLO',
+          Text('KİLO',
               style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1)),
           const SizedBox(height: 12),
           WeightChart(entries: _weights),
           const SizedBox(height: 24),
-          const Text('BUGÜNKÜ ÖĞÜNLER',
+          Text('BUGÜNKÜ ÖĞÜNLER',
               style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1)),
           const SizedBox(height: 12),
           if (_todayMeals.isEmpty)
@@ -840,7 +840,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('ANTRENMAN PLANLARI',
+            Text('ANTRENMAN PLANLARI',
                 style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1)),
             GestureDetector(
               onTap: _showCreatePlanSheet,
@@ -850,10 +850,10 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
                   gradient: AppColors.primaryGradient,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Row(children: [
-                  Icon(Icons.add, color: Colors.white, size: 14),
-                  SizedBox(width: 4),
-                  Text('Yeni Plan', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                child: Row(children: [
+                  Icon(Icons.add, color: AppColors.onPrimary, size: 14),
+                  const SizedBox(width: 4),
+                  Text('Yeni Plan', style: TextStyle(color: AppColors.onPrimary, fontSize: 12, fontWeight: FontWeight.bold)),
                 ]),
               ),
             ),
@@ -893,22 +893,22 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('BESLENME PLANI',
+            Text('BESLENME PLANI',
                 style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1)),
             GestureDetector(
               onTap: _showAddMealPlanSheet,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFF6B35), Color(0xFFFF4D6D)],
+                  gradient: LinearGradient(
+                    colors: [AppColors.primary, AppColors.primary],
                   ),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Row(children: [
-                  Icon(Icons.add, color: Colors.white, size: 14),
-                  SizedBox(width: 4),
-                  Text('Öğün Ekle', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                child: Row(children: [
+                  Icon(Icons.add, color: AppColors.onPrimary, size: 14),
+                  const SizedBox(width: 4),
+                  Text('Öğün Ekle', style: TextStyle(color: AppColors.onPrimary, fontSize: 12, fontWeight: FontWeight.bold)),
                 ]),
               ),
             ),
@@ -938,7 +938,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('KOÇ NOTLARI',
+            Text('KOÇ NOTLARI',
                 style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1)),
             GestureDetector(
               onTap: _showAddNoteSheet,
@@ -948,10 +948,10 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
                   gradient: AppColors.coolGradient,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Row(children: [
-                  Icon(Icons.add, color: Colors.white, size: 14),
-                  SizedBox(width: 4),
-                  Text('Not Ekle', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                child: Row(children: [
+                  Icon(Icons.add, color: AppColors.onPrimary, size: 14),
+                  const SizedBox(width: 4),
+                  Text('Not Ekle', style: TextStyle(color: AppColors.onPrimary, fontSize: 12, fontWeight: FontWeight.bold)),
                 ]),
               ),
             ),
@@ -993,7 +993,7 @@ class _HeaderChip extends StatelessWidget {
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Icon(icon, color: AppColors.background, size: 12),
         const SizedBox(width: 4),
-        Text(label, style: const TextStyle(color: AppColors.background, fontSize: 11)),
+        Text(label, style: TextStyle(color: AppColors.background, fontSize: 11)),
       ]),
     );
   }
@@ -1019,7 +1019,7 @@ class _StatCard extends StatelessWidget {
         Row(children: [
           Icon(icon, color: color, size: 16),
           const SizedBox(width: 6),
-          Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+          Text(label, style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
         ]),
         const SizedBox(height: 6),
         Text(value, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: color)),
@@ -1045,13 +1045,13 @@ class _MealCard extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(meal.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary)),
+            Text(meal.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary)),
             Text(
               '${meal.time}${meal.protein != null ? '  •  P ${meal.protein!.toStringAsFixed(0)}g  K ${meal.carbs?.toStringAsFixed(0) ?? 0}g  Y ${meal.fat?.toStringAsFixed(0) ?? 0}g' : ''}',
-              style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
             ),
           ])),
-          Text('${meal.calories} kcal', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: AppColors.textPrimary)),
+          Text('${meal.calories} kcal', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: AppColors.textPrimary)),
           IconButton(
             tooltip: 'Yorum yaz',
             visualDensity: VisualDensity.compact,
@@ -1072,7 +1072,7 @@ class _MealCard extends StatelessWidget {
               color: AppColors.secondary.withAlpha(20),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Text(meal.coachComment!, style: const TextStyle(color: AppColors.textPrimary, fontSize: 12)),
+            child: Text(meal.coachComment!, style: TextStyle(color: AppColors.textPrimary, fontSize: 12)),
           ),
         ],
       ]),
@@ -1109,18 +1109,18 @@ class _WorkoutPlanCard extends StatelessWidget {
         // Plan header
         Container(
           padding: const EdgeInsets.all(14),
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: AppColors.primaryGradient,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
           ),
           child: Row(children: [
-            const Icon(Icons.calendar_today, color: Colors.white70, size: 16),
+            Icon(Icons.calendar_today, color: AppColors.onPrimary.withAlpha(190), size: 16),
             const SizedBox(width: 8),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(plan['title'] ?? 'Plan',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                  style: TextStyle(color: AppColors.onPrimary, fontWeight: FontWeight.bold, fontSize: 15)),
               if (weekDay != null)
-                Text(weekDay, style: TextStyle(color: Colors.white.withAlpha(180), fontSize: 11)),
+                Text(weekDay, style: TextStyle(color: AppColors.onPrimary.withAlpha(180), fontSize: 11)),
             ])),
             // Egzersiz ekle
             GestureDetector(
@@ -1128,13 +1128,13 @@ class _WorkoutPlanCard extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(40),
+                  color: AppColors.onPrimary.withAlpha(40),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Row(children: [
-                  Icon(Icons.add, color: Colors.white, size: 14),
-                  SizedBox(width: 4),
-                  Text('Egzersiz', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                child: Row(children: [
+                  Icon(Icons.add, color: AppColors.onPrimary, size: 14),
+                  const SizedBox(width: 4),
+                  Text('Egzersiz', style: TextStyle(color: AppColors.onPrimary, fontSize: 11, fontWeight: FontWeight.bold)),
                 ]),
               ),
             ),
@@ -1142,14 +1142,14 @@ class _WorkoutPlanCard extends StatelessWidget {
             // Plan sil
             GestureDetector(
               onTap: onDeletePlan,
-              child: const Icon(Icons.delete_outline, color: Colors.white60, size: 20),
+              child: Icon(Icons.delete_outline, color: AppColors.onPrimary.withAlpha(150), size: 20),
             ),
           ]),
         ),
         // Egzersizler
         if (exercises.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(16),
+          Padding(
+            padding: const EdgeInsets.all(16),
             child: Text('Henüz egzersiz yok. Sağ üstten ekleyin.',
                 style: TextStyle(color: AppColors.textHint, fontSize: 12)),
           )
@@ -1159,12 +1159,12 @@ class _WorkoutPlanCard extends StatelessWidget {
             final ex = entry.value as Map<String, dynamic>;
             final isCardio = ex['duration_sec'] != null;
             final catColor = _ClientDetailScreenState._exerciseCategories
-                .firstWhere((c) => c.label == (ex['category'] ?? ''), orElse: () => const _ExCat('', Icons.circle, AppColors.textSecondary))
+                .firstWhere((c) => c.label == (ex['category'] ?? ''), orElse: () => _ExCat('', Icons.circle, AppColors.textSecondary))
                 .color;
 
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 border: Border(bottom: BorderSide(color: AppColors.divider)),
               ),
               child: Row(children: [
@@ -1188,15 +1188,15 @@ class _WorkoutPlanCard extends StatelessWidget {
                     isCardio
                         ? '${((ex['duration_sec'] ?? 0) / 60).round()} dk • ${ex['rest_sec'] ?? 60}sn dinlenme'
                         : '${ex['sets'] ?? 3} set × ${ex['reps'] ?? 12} tekrar • ${ex['rest_sec'] ?? 60}sn dinlenme',
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
                   ),
                   if (ex['notes'] != null)
                     Text('💬 ${ex['notes']}',
-                        style: const TextStyle(color: AppColors.primary, fontSize: 10)),
+                        style: TextStyle(color: AppColors.primary, fontSize: 10)),
                 ])),
                 GestureDetector(
                   onTap: () => onDeleteExercise(ex['id'].toString()),
-                  child: const Icon(Icons.close, size: 16, color: AppColors.textHint),
+                  child: Icon(Icons.close, size: 16, color: AppColors.textHint),
                 ),
               ]),
             );
@@ -1227,13 +1227,13 @@ class _NutritionGroupCard extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: const BoxDecoration(
-            color: Color(0xFFFF6B35),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          decoration: BoxDecoration(
+            color: AppColors.primary,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
           ),
           child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text(mealTime, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            Text('~$totalCal kcal', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+            Text(mealTime, style: TextStyle(color: AppColors.onPrimary, fontWeight: FontWeight.bold)),
+            Text('~$totalCal kcal', style: TextStyle(color: AppColors.onPrimary.withAlpha(190), fontSize: 12)),
           ]),
         ),
         ...items.map((item) => Padding(
@@ -1249,14 +1249,14 @@ class _NutritionGroupCard extends StatelessWidget {
                   if (item['target_carbs'] != null) 'K: ${item['target_carbs']}g',
                   if (item['target_fat'] != null) 'Y: ${item['target_fat']}g',
                 ].join(' • '),
-                style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
               ),
               if (item['notes'] != null)
-                Text('💬 ${item['notes']}', style: const TextStyle(color: AppColors.textHint, fontSize: 10)),
+                Text('💬 ${item['notes']}', style: TextStyle(color: AppColors.textHint, fontSize: 10)),
             ])),
             GestureDetector(
               onTap: () => onDelete(item['id'].toString()),
-              child: const Icon(Icons.close, size: 16, color: AppColors.textHint),
+              child: Icon(Icons.close, size: 16, color: AppColors.textHint),
             ),
           ]),
         )),
@@ -1271,11 +1271,11 @@ class _NoteCard extends StatelessWidget {
 
   const _NoteCard({required this.note, required this.onDelete});
 
-  static const _catColors = {
+  static final _catColors = {
     'genel': AppColors.primary,
-    'beslenme': Color(0xFFFF6B35),
-    'antrenman': Color(0xFF3D5AF1),
-    'motivasyon': Color(0xFFFFB347),
+    'beslenme': AppColors.primary,
+    'antrenman': AppColors.primary,
+    'motivasyon': AppColors.primary,
   };
 
   static const _catIcons = {
@@ -1317,13 +1317,13 @@ class _NoteCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               '${date.day}/${date.month}/${date.year}',
-              style: const TextStyle(color: AppColors.textHint, fontSize: 10),
+              style: TextStyle(color: AppColors.textHint, fontSize: 10),
             ),
           ],
         ])),
         GestureDetector(
           onTap: onDelete,
-          child: const Icon(Icons.delete_outline, size: 18, color: AppColors.textHint),
+          child: Icon(Icons.delete_outline, size: 18, color: AppColors.textHint),
         ),
       ]),
     );
@@ -1349,7 +1349,7 @@ class _EmptyCard extends StatelessWidget {
         const SizedBox(height: 12),
         Text(label,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.textSecondary, height: 1.5)),
+            style: TextStyle(color: AppColors.textSecondary, height: 1.5)),
       ]),
     );
   }
@@ -1364,9 +1364,9 @@ class _BottomSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.cardSurface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
@@ -1381,7 +1381,7 @@ class _BottomSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.textPrimary)),
+          Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.textPrimary)),
           const SizedBox(height: 20),
           child,
         ]),
@@ -1408,7 +1408,7 @@ class _SheetField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.bold)),
+      Text(label, style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.bold)),
       const SizedBox(height: 6),
       TextField(
         controller: ctrl,
@@ -1421,7 +1421,7 @@ class _SheetField extends StatelessWidget {
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.primary, width: 2),
+            borderSide: BorderSide(color: AppColors.primary, width: 2),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         ),
@@ -1433,9 +1433,9 @@ class _SheetField extends StatelessWidget {
 class _PrimaryButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
-  final Color color;
+  final Color? color;
 
-  const _PrimaryButton({required this.label, required this.onTap, this.color = AppColors.primary});
+  const _PrimaryButton({required this.label, required this.onTap, this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -1446,7 +1446,7 @@ class _PrimaryButton extends StatelessWidget {
         onPressed: onTap,
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
-          foregroundColor: Colors.white,
+          foregroundColor: AppColors.onPrimary,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
         child: Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),

@@ -1,67 +1,118 @@
 import 'package:flutter/material.dart';
 
-/// Uygulamanın global renk paleti — Patch 4.0 (The Elite Midnight) Yenilemesi
-/// Karanlık Zeminler + Neon Parlaklıklar ile "Hardcore Gym & Premium Tracker" Hissiyatı
+/// Açık ve koyu temanın renk jetonları. Tasarım ilkesi: nötr (siyah-beyaz-gri)
+/// bir arayüz; renk yalnızca anlam taşıyorsa (hata, uyarı, başarı) kullanılır.
+class AppPalette {
+  final Brightness brightness;
+  final Color background;
+  final Color surface;
+  final Color cardSurface;
+  final Color divider;
+  final Color text;
+  final Color textSecondary;
+  final Color textHint;
+
+  /// Vurgu = ön plan rengi (açıkta siyah, koyuda beyaz). Üzerindeki yazı [onPrimary].
+  final Color primary;
+  final Color onPrimary;
+  final Color mid; // orta gri (ikincil veri)
+  final Color soft; // açık gri (üçüncül veri)
+
+  const AppPalette({
+    required this.brightness,
+    required this.background,
+    required this.surface,
+    required this.cardSurface,
+    required this.divider,
+    required this.text,
+    required this.textSecondary,
+    required this.textHint,
+    required this.primary,
+    required this.onPrimary,
+    required this.mid,
+    required this.soft,
+  });
+
+  static const light = AppPalette(
+    brightness: Brightness.light,
+    background: Color(0xFFFFFFFF),
+    surface: Color(0xFFEDEDEF),
+    cardSurface: Color(0xFFF5F5F6),
+    divider: Color(0xFFE3E3E6),
+    text: Color(0xFF0A0A0B),
+    textSecondary: Color(0xFF6B6B70),
+    textHint: Color(0xFFA3A3A8),
+    primary: Color(0xFF0A0A0B),
+    onPrimary: Color(0xFFFFFFFF),
+    mid: Color(0xFF8A8A8F),
+    soft: Color(0xFFC4C4C8),
+  );
+
+  static const dark = AppPalette(
+    brightness: Brightness.dark,
+    background: Color(0xFF000000),
+    surface: Color(0xFF1E1E20),
+    cardSurface: Color(0xFF141415),
+    divider: Color(0xFF272729),
+    text: Color(0xFFFFFFFF),
+    textSecondary: Color(0xFF9A9A9F),
+    textHint: Color(0xFF5E5E63),
+    primary: Color(0xFFFFFFFF),
+    onPrimary: Color(0xFF000000),
+    mid: Color(0xFF8E8E93),
+    soft: Color(0xFF48484B),
+  );
+}
+
+/// Uygulama renkleri. Değerler aktif temaya göre değişir; kök widget
+/// (bkz. main.dart) tema değişince alt ağacı yeniden oluşturur.
 class AppColors {
-  // ── ANA VURGU RENKLERİ (NEON / ELITE) ────────────────────────────────────
-  // Enerji ve Aksiyon: Neon Zümrüt Yeşili (Emerald/Mint - Aksiyon ve Doğrulama)
-  static const Color primary = Color(0xFF00FF9D); 
-  static const Color primaryDark = Color(0xFF00CC7E);
-  static const Color primaryLight = Color(0xFF66FFA9);
+  static AppPalette _p = AppPalette.dark;
 
-  // İkincil Aksiyon: Elektrik Mavisi/Cyan (Odaklanma, Soğukkanlılık)
-  static const Color secondary = Color(0xFF00E5FF); 
-  static const Color secondaryDark = Color(0xFF00B2CC);
+  static void apply(Brightness b) =>
+      _p = b == Brightness.dark ? AppPalette.dark : AppPalette.light;
 
-  // ── AKSİYON VE UYARI RENKLERİ ───────────────────────────────────────────
-  // Kriz anları ve yaklaşılan limitler için (Canlı Turuncu/Kırmızı)
-  static const Color warning = Color(0xFFFF5722); // Deep Neon Orange
-  static const Color danger = Color(0xFFFF1744); // Neon Red
-  static const Color success = Color(0xFF00FF9D); // Neon Emerald
+  static bool get isDark => _p.brightness == Brightness.dark;
+  static AppPalette get palette => _p;
 
-  // ── ARKA PLAN VE YÜZEY (MIDNIGHT DARK MODE) ─────────────────────────────
-  // Uygulamanın ana kaportası (Simsiyah değil, ultra koyu lacivert/uzay grisi)
-  static const Color background = Color(0xFF0B0F19); // Çok derin gece mavisi
-  static const Color surface = Color(0xFF151B2B); // Pop-up'lar ve Navigasyon
-  static const Color cardSurface = Color(0xFF1E2638); // Veri Kartları
+  // ── Nötr yüzeyler ────────────────────────────────────────────────────────
+  static Color get background => _p.background;
+  static Color get surface => _p.surface;
+  static Color get cardSurface => _p.cardSurface;
+  static Color get divider => _p.divider;
 
-  // ── TİPOGRAFİ ───────────────────────────────────────────────────────────
-  // Karanlık zeminde göz yormayan, okunaklı metinler
-  static const Color textPrimary = Color(0xFFFFFFFF); // Tam beyaz (Başlıklar)
-  static const Color textSecondary = Color(0xFF8B96A5); // Gri-Mavi (Alt yazılar)
-  static const Color textHint = Color(0xFF4A5568); // Yarı görünmez rehberler
+  // ── Metin ────────────────────────────────────────────────────────────────
+  static Color get textPrimary => _p.text;
+  static Color get textSecondary => _p.textSecondary;
+  static Color get textHint => _p.textHint;
 
-  // ── MAKRO RENKLERİ ──────────────────────────────────────────────────────
-  static const Color protein = Color(0xFF4FA3FF);
-  static const Color carbs = Color(0xFFFFB020);
-  static const Color fat = Color(0xFFFF5C7A);
-  static const Color water = Color(0xFF38BDF8);
+  // ── Vurgu (nötr) ─────────────────────────────────────────────────────────
+  static Color get primary => _p.primary;
+  static Color get onPrimary => _p.onPrimary;
+  static Color get primaryDark => _p.primary;
+  static Color get primaryLight => _p.mid;
+  static Color get secondary => _p.mid;
+  static Color get secondaryDark => _p.textSecondary;
 
-  // Kart kenarlığı / ayraç (koyu zeminde ince çizgi)
-  static const Color divider = Color(0xFF2A3346);
+  // ── Anlamlı renkler (yalnızca durum bildirir) ────────────────────────────
+  static Color get success => const Color(0xFF1F9D55);
+  static Color get warning => const Color(0xFFE08A1E);
+  static Color get danger => const Color(0xFFE5484D);
 
-  // ── GRADİENT TANIMLAMALARI ──────────────────────────────────────────────
-  // Ana Elite Gradient: Neon Yeşil → Neon Cyan
-  static const LinearGradient primaryGradient = LinearGradient(
-    colors: [Color(0xFF00FF9D), Color(0xFF00E5FF)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
+  // ── Veri serileri (gri tonları) ──────────────────────────────────────────
+  static Color get protein => _p.primary;
+  static Color get carbs => _p.mid;
+  static Color get fat => _p.soft;
+  static Color get water => _p.mid;
 
-  // Hardcore Gradient (Antrenman): Kan Kırmızı → Neon Turuncu
-  static const LinearGradient energyGradient = LinearGradient(
-    colors: [Color(0xFFFF1744), Color(0xFFFF5722)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
+  // ── Gradyanlar (yalnızca nötr tonlar) ────────────────────────────────────
+  static LinearGradient get primaryGradient => LinearGradient(
+        colors: [_p.primary, _p.primary],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      );
+  static LinearGradient get energyGradient => primaryGradient;
+  static LinearGradient get coolGradient => primaryGradient;
 
-  // Soğuma Gradient: Koyu Mor → Cyan
-  static const LinearGradient coolGradient = LinearGradient(
-    colors: [Color(0xFF651FFF), Color(0xFF00E5FF)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
-  // Cam Efekti: Koyu zeminde buzlu cam (Glassmorphism)
-  static Color glassDark = const Color(0xFF151B2B).withAlpha(150);
+  static Color get glassDark => _p.cardSurface.withAlpha(180);
 }

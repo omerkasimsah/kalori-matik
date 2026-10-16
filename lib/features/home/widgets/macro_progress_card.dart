@@ -75,7 +75,7 @@ class _MacroBar extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label,
-            style: const TextStyle(
+            style: TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 11,
                 fontWeight: FontWeight.w600)),
@@ -107,7 +107,7 @@ class _MacroBar extends StatelessWidget {
               ),
               TextSpan(
                 text: ' / ${target}g',
-                style: const TextStyle(
+                style: TextStyle(
                     color: AppColors.textSecondary, fontSize: 11),
               ),
             ],

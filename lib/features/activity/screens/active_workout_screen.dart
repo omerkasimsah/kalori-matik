@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../widgets/exercise_media.dart';
 
 /// Antrenmandaki tek bir adım (egzersiz veya dinlenme).
 class WorkoutStep {
@@ -16,6 +17,9 @@ class WorkoutStep {
   final bool isRest;
   final String? notes;
 
+  /// Kütüphanedeki egzersiz kimliği (görsel/animasyon için).
+  final String? exerciseId;
+
   const WorkoutStep({
     required this.name,
     this.durationSec,
@@ -23,6 +27,7 @@ class WorkoutStep {
     this.reps,
     this.isRest = false,
     this.notes,
+    this.exerciseId,
   });
 
   const WorkoutStep.rest(int seconds)
@@ -31,7 +36,8 @@ class WorkoutStep {
         sets = null,
         reps = null,
         isRest = true,
-        notes = null;
+        notes = null,
+        exerciseId = null;
 }
 
 /// Ekipmansız, 10 dakikalık varsayılan tüm vücut antrenmanı.
@@ -158,7 +164,7 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
               child: const Text('Devam et')),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Çık',
+              child: Text('Çık',
                   style: TextStyle(color: AppColors.danger))),
         ],
       ),
@@ -218,7 +224,7 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
           ),
           const SizedBox(height: 8),
           Text('${_index + 1} / ${widget.steps.length}',
-              style: const TextStyle(color: AppColors.textSecondary)),
+              style: TextStyle(color: AppColors.textSecondary)),
           const Spacer(),
           SizedBox(
             width: 240,
@@ -253,7 +259,7 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
                                   fontWeight: FontWeight.w900,
                                   color: color),
                             ),
-                            const Text('tekrar',
+                            Text('tekrar',
                                 style:
                                     TextStyle(color: AppColors.textSecondary)),
                           ],
@@ -262,11 +268,15 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 32),
+          if (step.exerciseId != null && hasExerciseMedia(step.exerciseId!)) ...[
+            const SizedBox(height: 20),
+            ExerciseAnimation(exerciseId: step.exerciseId!, height: 170),
+          ],
+          const SizedBox(height: 24),
           Text(
             step.name,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.w900,
               color: AppColors.textPrimary,
@@ -276,12 +286,12 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
             const SizedBox(height: 8),
             Text(step.notes!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textSecondary)),
+                style: TextStyle(color: AppColors.textSecondary)),
           ],
           if (upcoming.name.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text('Sıradaki: ${upcoming.name}',
-                style: const TextStyle(color: AppColors.textSecondary)),
+                style: TextStyle(color: AppColors.textSecondary)),
           ],
           const Spacer(),
           Row(
@@ -329,10 +339,10 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Icon(Icons.emoji_events_rounded,
+          Icon(Icons.emoji_events_rounded,
               size: 96, color: AppColors.carbs),
           const SizedBox(height: 24),
-          const Text('Harika iş! 💪',
+          Text('Harika iş! 💪',
               textAlign: TextAlign.center,
               style: TextStyle(
                   fontSize: 32,
@@ -341,7 +351,7 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
           const SizedBox(height: 12),
           Text('$exercises egzersizi $minutes dakikada tamamladın.',
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                   color: AppColors.textSecondary, fontSize: 16)),
           const SizedBox(height: 40),
           ElevatedButton(

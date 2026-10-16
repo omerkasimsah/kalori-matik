@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/config/app_config.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../home/widgets/progress_charts.dart';
 import '../../../core/services/supabase_service.dart';
 import '../../../core/theme/app_colors.dart';
@@ -164,7 +165,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           SnackBar(
             content: Text(
               e is FormatException ? e.message : 'Profil kaydedilemedi. Tekrar deneyin.',
-              style: const TextStyle(color: AppColors.danger),
+              style: TextStyle(color: AppColors.danger),
             ),
           ),
         );
@@ -218,7 +219,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       if (mounted) setState(() => _weightRefresh++);
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('Kilo kaydedilemedi. Phase 4 SQL çalıştırıldı mı?',
                 style: TextStyle(color: AppColors.danger))));
       }
@@ -238,7 +239,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               child: const Text('Vazgeç')),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Kalıcı Olarak Sil',
+              child: Text('Kalıcı Olarak Sil',
                   style: TextStyle(color: AppColors.danger))),
         ],
       ),
@@ -249,7 +250,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       if (mounted) context.go('/login');
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('Hesap silinemedi. Daha sonra tekrar deneyin.',
                 style: TextStyle(color: AppColors.danger))));
       }
@@ -277,7 +278,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: _isLoading
-            ? const Center(
+            ? Center(
                 child: CircularProgressIndicator(color: AppColors.primary))
             : ListView(
                 padding: const EdgeInsets.all(20),
@@ -286,7 +287,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Profilim',
                         style: TextStyle(
                             fontSize: 26,
@@ -297,9 +298,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         TextButton.icon(
                           onPressed: () =>
                               setState(() => _isEditing = true),
-                          icon: const Icon(Icons.edit_outlined,
+                          icon: Icon(Icons.edit_outlined,
                               size: 16, color: AppColors.primary),
-                          label: const Text('Düzenle',
+                          label: Text('Düzenle',
                               style: TextStyle(color: AppColors.primary)),
                         ),
                     ],
@@ -331,7 +332,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 color: AppColors.background.withAlpha(30),
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(Icons.person,
+                              child: Icon(Icons.person,
                                   color: AppColors.background, size: 34),
                             ),
                             const SizedBox(width: 16),
@@ -341,7 +342,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 children: [
                                   Text(
                                     user?.email?.split('@').first ?? 'Kullanıcı',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                         color: AppColors.background,
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold),
@@ -399,7 +400,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                       const SizedBox(width: 10),
                                       Text(
                                         _profile!['kalori_id'].toString(),
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           color: AppColors.background,
                                           fontSize: 18,
                                           fontWeight: FontWeight.w900,
@@ -436,7 +437,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             color: AppColors.primary.withAlpha(20),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(Icons.local_fire_department,
+                          child: Icon(Icons.local_fire_department,
                               color: AppColors.primary, size: 24),
                         ),
                         const SizedBox(width: 16),
@@ -444,13 +445,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Günlük Kalori Limitin',
+                              Text('Günlük Kalori Limitin',
                                   style: TextStyle(
                                       color: AppColors.textSecondary,
                                       fontSize: 12)),
                               Text(
                                 '$budget kcal',
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.w900,
                                     color: AppColors.primary),
@@ -474,7 +475,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Fiziksel Bilgiler',
+                        Text('Fiziksel Bilgiler',
                             style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
@@ -541,7 +542,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 setState(() => _activityLevel = v ?? 1.375),
                           ),
                           const SizedBox(height: 16),
-                          const Text('Hedef',
+                          Text('Hedef',
                               style: TextStyle(
                                   color: AppColors.textSecondary,
                                   fontSize: 12)),
@@ -577,7 +578,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   onPressed:
                                       _isSaving ? null : _saveProfile,
                                   child: _isSaving
-                                      ? const SizedBox(
+                                      ? SizedBox(
                                           width: 18,
                                           height: 18,
                                           child: CircularProgressIndicator(
@@ -642,7 +643,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Kilo Takibi',
+                      Text('Kilo Takibi',
                           style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
@@ -662,10 +663,42 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ),
                   const SizedBox(height: 20),
 
+                  // ── Görünüm ─────────────────────────────────────────────
+                  Text('Görünüm',
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary)),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: SegmentedButton<ThemeMode>(
+                      showSelectedIcon: false,
+                      segments: const [
+                        ButtonSegment(
+                            value: ThemeMode.system,
+                            icon: Icon(Icons.brightness_auto, size: 18),
+                            label: Text('Sistem')),
+                        ButtonSegment(
+                            value: ThemeMode.light,
+                            icon: Icon(Icons.light_mode_outlined, size: 18),
+                            label: Text('Açık')),
+                        ButtonSegment(
+                            value: ThemeMode.dark,
+                            icon: Icon(Icons.dark_mode_outlined, size: 18),
+                            label: Text('Koyu')),
+                      ],
+                      selected: {ref.watch(themeModeProvider)},
+                      onSelectionChanged: (s) =>
+                          ref.read(themeModeProvider.notifier).set(s.first),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
                   // ── Gizlilik ve Hesap ───────────────────────────────────
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.privacy_tip_outlined,
+                    leading: Icon(Icons.privacy_tip_outlined,
                         color: AppColors.textSecondary),
                     title: const Text('Gizlilik Politikası'),
                     trailing: const Icon(Icons.open_in_new, size: 18),
@@ -674,9 +707,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.delete_forever_outlined,
+                    leading: Icon(Icons.delete_forever_outlined,
                         color: AppColors.danger),
-                    title: const Text('Hesabımı Sil',
+                    title: Text('Hesabımı Sil',
                         style: TextStyle(color: AppColors.danger)),
                     onTap: _deleteAccount,
                   ),
@@ -695,7 +728,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 child: const Text('Vazgeç')),
                             TextButton(
                                 onPressed: () => Navigator.pop(ctx, true),
-                                child: const Text('Çıkış Yap',
+                                child: Text('Çıkış Yap',
                                     style: TextStyle(color: AppColors.danger))),
                           ],
                         ),
@@ -704,12 +737,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       await SupabaseService.signOut();
                       if (context.mounted) context.go('/login');
                     },
-                    icon: const Icon(Icons.logout, color: AppColors.danger),
-                    label: const Text('Çıkış Yap',
+                    icon: Icon(Icons.logout, color: AppColors.danger),
+                    label: Text('Çıkış Yap',
                         style: TextStyle(color: AppColors.danger)),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: const BorderSide(color: AppColors.danger),
+                      side: BorderSide(color: AppColors.danger),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14)),
                     ),
@@ -743,8 +776,8 @@ class _WeightLossTargetCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            const Color(0xFF2ECC71).withAlpha(20),
-            const Color(0xFF27AE60).withAlpha(10),
+            AppColors.primary.withAlpha(14),
+            AppColors.primary.withAlpha(6),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -766,11 +799,11 @@ class _WeightLossTargetCard extends StatelessWidget {
                   color: AppColors.primary.withAlpha(30),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.trending_down,
+                child: Icon(Icons.trending_down,
                     color: AppColors.primary, size: 18),
               ),
               const SizedBox(width: 10),
-              const Text(
+              Text(
                 'Kilo Verme Hedefin',
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
@@ -802,7 +835,7 @@ class _WeightLossTargetCard extends StatelessWidget {
                             color: AppColors.primary.withAlpha(40))),
                     focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(
+                        borderSide: BorderSide(
                             color: AppColors.primary, width: 1.5)),
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 14),
@@ -830,7 +863,7 @@ class _WeightLossTargetCard extends StatelessWidget {
                             color: AppColors.primary.withAlpha(40))),
                     focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(
+                        borderSide: BorderSide(
                             color: AppColors.primary, width: 1.5)),
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 14),
@@ -852,12 +885,12 @@ class _WeightLossTargetCard extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.bolt,
+                  Icon(Icons.bolt,
                       color: AppColors.background, size: 18),
                   const SizedBox(width: 6),
                   Text(
                     'Önerilen günlük kalori: $previewCalorie kcal',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.background,
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
@@ -867,7 +900,7 @@ class _WeightLossTargetCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               '* Maksimum 1000 kcal/gün kalori açığı uygulanır.',
               style: TextStyle(
                   fontSize: 10, color: AppColors.textSecondary),
@@ -900,8 +933,8 @@ class _WeightLossInfoCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            const Color(0xFF2ECC71).withAlpha(15),
-            const Color(0xFF27AE60).withAlpha(8),
+            AppColors.primary.withAlpha(12),
+            AppColors.primary.withAlpha(5),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -912,11 +945,11 @@ class _WeightLossInfoCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const Row(
+          Row(
             children: [
               Icon(Icons.trending_down,
                   color: AppColors.primary, size: 18),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Text(
                 'Kilo Verme Planın',
                 style: TextStyle(
@@ -986,10 +1019,10 @@ class _InfoChip extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(label,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 9, color: AppColors.textSecondary)),
               Text(value,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: AppColors.textPrimary)),
@@ -1022,11 +1055,11 @@ class _ProfileRow extends StatelessWidget {
           Icon(icon, size: 18, color: AppColors.textSecondary),
           const SizedBox(width: 10),
           Text(label,
-              style: const TextStyle(
+              style: TextStyle(
                   color: AppColors.textSecondary, fontSize: 13)),
           const Spacer(),
           Text(value,
-              style: const TextStyle(
+              style: TextStyle(
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.w600,
                   fontSize: 13)),

@@ -35,7 +35,7 @@ class WaterCard extends ConsumerWidget {
                   color: AppColors.water.withAlpha(30),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.water_drop_rounded,
+                child: Icon(Icons.water_drop_rounded,
                     color: AppColors.water, size: 20),
               ),
               const SizedBox(width: 12),
@@ -43,7 +43,7 @@ class WaterCard extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Su',
+                    Text('Su',
                         style: TextStyle(
                             color: AppColors.textPrimary,
                             fontWeight: FontWeight.w700)),
@@ -51,7 +51,7 @@ class WaterCard extends ConsumerWidget {
                       done
                           ? 'Hedef tamam! 🎉'
                           : '${_liters(intake)} / ${_liters(goal)} L',
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: AppColors.textSecondary, fontSize: 12),
                     ),
                   ],
@@ -79,7 +79,7 @@ class WaterCard extends ConsumerWidget {
                 value: v,
                 minHeight: 8,
                 backgroundColor: AppColors.water.withAlpha(30),
-                valueColor: const AlwaysStoppedAnimation(AppColors.water),
+                valueColor: AlwaysStoppedAnimation(AppColors.water),
               ),
             ),
           ),
@@ -106,7 +106,7 @@ class _AddButton extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           child: Text(label,
-              style: const TextStyle(
+              style: TextStyle(
                   color: AppColors.water,
                   fontWeight: FontWeight.w800,
                   fontSize: 12)),

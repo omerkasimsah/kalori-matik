@@ -2,17 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../data/exercise_library.dart';
+import '../widgets/exercise_media.dart';
 
-Color _muscleColor(Muscle m) => switch (m) {
-      Muscle.chest => const Color(0xFF4FA3FF),
-      Muscle.back => const Color(0xFF38BDF8),
-      Muscle.shoulders => const Color(0xFF8B5CF6),
-      Muscle.arms => const Color(0xFFFFB020),
-      Muscle.legs => const Color(0xFFFF5C7A),
-      Muscle.core => const Color(0xFFFF8A3D),
-      Muscle.fullBody => AppColors.primary,
-      Muscle.cardio => const Color(0xFFFF1744),
-    };
+Color _muscleColor(Muscle m) => AppColors.primary;
 
 /// Kas grubuna göre filtrelenebilen, aranabilir egzersiz kütüphanesi.
 class ExerciseLibraryScreen extends StatefulWidget {
@@ -77,7 +69,7 @@ class _ExerciseLibraryScreenState extends State<ExerciseLibraryScreen> {
           SwitchListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
             dense: true,
-            title: const Text('Sadece ekipmansız',
+            title: Text('Sadece ekipmansız',
                 style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
             value: _noEquipmentOnly,
             activeColor: AppColors.primary,
@@ -85,7 +77,7 @@ class _ExerciseLibraryScreenState extends State<ExerciseLibraryScreen> {
           ),
           Expanded(
             child: list.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text('Sonuç bulunamadı',
                         style: TextStyle(color: AppColors.textSecondary)))
                 : ListView.separated(
@@ -149,28 +141,20 @@ class ExerciseTile extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: color.withAlpha(30),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(e.muscle.icon, color: color),
-              ),
+              ExerciseThumb(exerciseId: e.id, fallback: e.muscle.icon),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(e.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                             color: AppColors.textPrimary,
                             fontWeight: FontWeight.w700,
                             fontSize: 15)),
                     const SizedBox(height: 2),
                     Text('${e.muscle.label} • ${e.equipment.label} • ${e.level.label}',
-                        style: const TextStyle(
+                        style: TextStyle(
                             color: AppColors.textSecondary, fontSize: 12)),
                   ],
                 ),
@@ -201,24 +185,23 @@ class ExerciseDetailScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
         children: [
-          Container(
-            height: 150,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [color.withAlpha(200), color.withAlpha(60)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+          if (hasExerciseMedia(e.id))
+            ExerciseAnimation(exerciseId: e.id, height: 240)
+          else
+            Container(
+              height: 140,
+              decoration: BoxDecoration(
+                color: AppColors.cardSurface,
+                borderRadius: BorderRadius.circular(24),
               ),
-              borderRadius: BorderRadius.circular(24),
+              child: Center(
+                child: Icon(e.muscle.icon,
+                    size: 64, color: AppColors.textSecondary),
+              ),
             ),
-            child: Center(
-              child: Icon(e.muscle.icon,
-                  size: 72, color: AppColors.background.withAlpha(220)),
-            ),
-          ),
           const SizedBox(height: 20),
           Text(e.name,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w900,
                   color: AppColors.textPrimary)),
@@ -250,7 +233,7 @@ class ExerciseDetailScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          const Text('NASIL YAPILIR',
+          Text('NASIL YAPILIR',
               style: TextStyle(
                   color: AppColors.textSecondary,
                   fontSize: 12,
@@ -278,7 +261,7 @@ class ExerciseDetailScreen extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(e.steps[i],
-                        style: const TextStyle(
+                        style: TextStyle(
                             color: AppColors.textPrimary, height: 1.4)),
                   ),
                 ],
@@ -296,10 +279,10 @@ class ExerciseDetailScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(children: [
+                  Row(children: [
                     Icon(Icons.tips_and_updates_outlined,
                         color: AppColors.primary, size: 18),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Text('İpuçları',
                         style: TextStyle(
                             color: AppColors.primary,
@@ -310,7 +293,7 @@ class ExerciseDetailScreen extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.only(bottom: 4),
                       child: Text('• $t',
-                          style: const TextStyle(
+                          style: TextStyle(
                               color: AppColors.textSecondary, height: 1.4)),
                     ),
                 ],
@@ -318,7 +301,7 @@ class ExerciseDetailScreen extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'Yeni bir harekete başlarken hafif ağırlıkla formu öğren. '
             'Ağrı hissedersen dur ve bir uzmana danış.',
             style: TextStyle(color: AppColors.textHint, fontSize: 11),
@@ -356,12 +339,12 @@ class _Stat extends StatelessWidget {
   Widget build(BuildContext context) => Column(
         children: [
           Text(value,
-              style: const TextStyle(
+              style: TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 20,
                   fontWeight: FontWeight.w900)),
           Text(label,
-              style: const TextStyle(
+              style: TextStyle(
                   color: AppColors.textSecondary, fontSize: 11)),
         ],
       );

@@ -102,7 +102,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
                 'Profil kaydedilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.',
                 style: TextStyle(color: AppColors.danger)),

@@ -141,7 +141,7 @@ class _ProfessionalDashboardState extends ConsumerState<ProfessionalDashboard> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Danışanının Profil ekranında görünen 6 haneli KaloriID kodunu gir:',
               style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
             ),
@@ -176,7 +176,7 @@ class _ProfessionalDashboardState extends ConsumerState<ProfessionalDashboard> {
               } catch (e) {
                 messenger.showSnackBar(SnackBar(
                   content: Text(e.toString().replaceAll('Exception: ', ''),
-                      style: const TextStyle(color: AppColors.danger)),
+                      style: TextStyle(color: AppColors.danger)),
                 ));
               }
             },
@@ -198,7 +198,7 @@ class _ProfessionalDashboardState extends ConsumerState<ProfessionalDashboard> {
               child: const Text('Vazgeç')),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Çıkış Yap',
+              child: Text('Çıkış Yap',
                   style: TextStyle(color: AppColors.danger))),
         ],
       ),
@@ -242,20 +242,20 @@ class _ProfessionalDashboardState extends ConsumerState<ProfessionalDashboard> {
               title: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Danışanlarım',
+                  Text('Danışanlarım',
                       style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w900,
                           color: AppColors.textPrimary)),
                   Text(email,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 11, color: AppColors.textSecondary)),
                 ],
               ),
               actions: [
                 IconButton(
                   tooltip: 'Çıkış',
-                  icon: const Icon(Icons.logout, color: AppColors.textSecondary),
+                  icon: Icon(Icons.logout, color: AppColors.textSecondary),
                   onPressed: _logout,
                 ),
               ],
@@ -271,10 +271,10 @@ class _ProfessionalDashboardState extends ConsumerState<ProfessionalDashboard> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.cloud_off,
+                        Icon(Icons.cloud_off,
                             size: 48, color: AppColors.textSecondary),
                         const SizedBox(height: 12),
-                        const Text('Danışanlar yüklenemedi',
+                        Text('Danışanlar yüklenemedi',
                             style: TextStyle(color: AppColors.textSecondary)),
                         TextButton(
                           onPressed: () =>
@@ -373,7 +373,7 @@ class _Summary extends StatelessWidget {
                   fontSize: 24, fontWeight: FontWeight.w900, color: color)),
           const SizedBox(height: 2),
           Text(label,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 11, color: AppColors.textSecondary)),
         ],
       ),
@@ -441,12 +441,12 @@ class _ClientCard extends StatelessWidget {
                         Text(s.name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w800,
                                 color: AppColors.textPrimary)),
                         Text(goal,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 12, color: AppColors.textSecondary)),
                       ],
                     ),
@@ -476,12 +476,12 @@ class _ClientCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text('Bugün ${s.todayCalories} / ${s.target} kcal',
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: AppColors.textPrimary,
                           fontWeight: FontWeight.w700,
                           fontSize: 13)),
                   Text('Ort. ${s.weekAverage} kcal',
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: AppColors.textSecondary, fontSize: 12)),
                 ],
               ),
@@ -515,7 +515,7 @@ class _ClientCard extends StatelessWidget {
                               : AppColors.textSecondary),
                     ),
                   ),
-                  const Icon(Icons.chevron_right,
+                  Icon(Icons.chevron_right,
                       size: 20, color: AppColors.textSecondary),
                 ],
               ),
@@ -540,19 +540,19 @@ class _EmptyClients extends StatelessWidget {
           Container(
             width: 96,
             height: 96,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
                 gradient: AppColors.primaryGradient, shape: BoxShape.circle),
-            child: const Icon(Icons.people_outline,
+            child: Icon(Icons.people_outline,
                 size: 48, color: AppColors.background),
           ),
           const SizedBox(height: 24),
-          const Text('Henüz danışanın yok',
+          Text('Henüz danışanın yok',
               style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
                   color: AppColors.textPrimary)),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Danışanından Profil ekranındaki 6 haneli KaloriID kodunu iste ve '
             '"Danışan Ekle" ile bağlan. Öğünlerini, kilosunu ve ilerlemesini '
             'buradan takip edebilirsin.',

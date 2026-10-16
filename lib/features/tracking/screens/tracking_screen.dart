@@ -65,7 +65,7 @@ class CoachSummaryCard extends ConsumerWidget {
                     color: AppColors.secondary.withAlpha(30),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.support_agent_rounded,
+                  child: Icon(Icons.support_agent_rounded,
                       color: AppColors.secondary),
                 ),
                 const SizedBox(width: 14),
@@ -73,7 +73,7 @@ class CoachSummaryCard extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Koçundan',
+                      Text('Koçundan',
                           style: TextStyle(
                               color: AppColors.textPrimary,
                               fontWeight: FontWeight.w700)),
@@ -83,13 +83,13 @@ class CoachSummaryCard extends ConsumerWidget {
                             '${content.nutritionPlan.length} öğünlük beslenme planın hazır',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                             color: AppColors.textSecondary, fontSize: 12),
                       ),
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                Icon(Icons.chevron_right, color: AppColors.textSecondary),
               ],
             ),
           ),
@@ -118,8 +118,8 @@ class TrackingScreen extends ConsumerWidget {
         child: async.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (_, __) => ListView(
-            children: const [
-              SizedBox(height: 120),
+            children: [
+              const SizedBox(height: 120),
               Center(
                 child: Text('İçerik yüklenemedi',
                     style: TextStyle(color: AppColors.textSecondary)),
@@ -130,11 +130,11 @@ class TrackingScreen extends ConsumerWidget {
             if (content.isEmpty) {
               return ListView(
                 padding: const EdgeInsets.all(32),
-                children: const [
-                  SizedBox(height: 60),
+                children: [
+                  const SizedBox(height: 60),
                   Icon(Icons.support_agent_rounded,
                       size: 64, color: AppColors.textHint),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   Text(
                     'Henüz koçundan bir plan yok',
                     textAlign: TextAlign.center,
@@ -143,7 +143,7 @@ class TrackingScreen extends ConsumerWidget {
                         fontWeight: FontWeight.bold,
                         fontSize: 16),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
                     'KaloriID\'ni Profil sekmesinden koçunla paylaş; '
                     'atadığı plan ve notlar burada görünecek.',
@@ -193,7 +193,7 @@ class _SectionTitle extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10, top: 4),
       child: Text(text,
-          style: const TextStyle(
+          style: TextStyle(
               color: AppColors.textSecondary,
               fontSize: 12,
               fontWeight: FontWeight.bold,
@@ -238,7 +238,7 @@ class _PlanItem extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(item['meal_time'] ?? '',
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: AppColors.primary,
                         fontSize: 11,
                         fontWeight: FontWeight.w700)),
@@ -246,27 +246,27 @@ class _PlanItem extends StatelessWidget {
               const Spacer(),
               if (kcal != null)
                 Text('$kcal kcal',
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.w800)),
             ],
           ),
           const SizedBox(height: 8),
           Text(item['meal_name'] ?? '',
-              style: const TextStyle(
+              style: TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 15,
                   fontWeight: FontWeight.w600)),
           if (macros.isNotEmpty) ...[
             const SizedBox(height: 4),
             Text(macros,
-                style: const TextStyle(
+                style: TextStyle(
                     color: AppColors.textSecondary, fontSize: 12)),
           ],
           if (notes != null && notes.isNotEmpty) ...[
             const SizedBox(height: 6),
             Text(notes,
-                style: const TextStyle(
+                style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 12,
                     fontStyle: FontStyle.italic)),
@@ -299,15 +299,15 @@ class _NoteItem extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.format_quote_rounded,
+          Icon(Icons.format_quote_rounded,
               color: AppColors.secondary, size: 20),
           const SizedBox(height: 4),
           Text(note['note'] ?? '',
-              style: const TextStyle(color: AppColors.textPrimary)),
+              style: TextStyle(color: AppColors.textPrimary)),
           const SizedBox(height: 6),
           Text(
             '${(note['category'] as String? ?? 'genel').toUpperCase()} · $date',
-            style: const TextStyle(color: AppColors.textHint, fontSize: 11),
+            style: TextStyle(color: AppColors.textHint, fontSize: 11),
           ),
         ],
       ),

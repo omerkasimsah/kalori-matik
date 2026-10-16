@@ -70,6 +70,47 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  assets:
+    - assets/exercises/back_squat/
+    - assets/exercises/bench_press/
+    - assets/exercises/bent_row/
+    - assets/exercises/bicep_curl/
+    - assets/exercises/bicycle_crunch/
+    - assets/exercises/cable_fly/
+    - assets/exercises/calf_raise/
+    - assets/exercises/cat_cow/
+    - assets/exercises/child_pose/
+    - assets/exercises/crunch/
+    - assets/exercises/db_press/
+    - assets/exercises/db_row/
+    - assets/exercises/glute_bridge/
+    - assets/exercises/hammer_curl/
+    - assets/exercises/hamstring_stretch/
+    - assets/exercises/hip_flexor/
+    - assets/exercises/incline_db_press/
+    - assets/exercises/jump_squat/
+    - assets/exercises/jumping_jacks/
+    - assets/exercises/lat_pulldown/
+    - assets/exercises/lateral_raise/
+    - assets/exercises/leg_press/
+    - assets/exercises/leg_raise/
+    - assets/exercises/lunge/
+    - assets/exercises/mountain_climber/
+    - assets/exercises/plank/
+    - assets/exercises/pullup/
+    - assets/exercises/pushup/
+    - assets/exercises/rdl/
+    - assets/exercises/rowing/
+    - assets/exercises/russian_twist/
+    - assets/exercises/seated_row/
+    - assets/exercises/shoulder_press/
+    - assets/exercises/shoulder_stretch/
+    - assets/exercises/squat/
+    - assets/exercises/superman/
+    - assets/exercises/treadmill_run/
+    - assets/exercises/tricep_dips/
+    - assets/exercises/tricep_pushdown/
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

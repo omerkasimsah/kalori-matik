@@ -1,175 +1,180 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import 'app_colors.dart';
 
 class AppTheme {
-  /// Uygulamanın merkezi tasarım sistemi — Patch 4.0 Elite Midnight
-  /// Tüm renk, font, buton ve giriş alanı stilleri karanlık / premium temaya geçirildi.
-  static ThemeData get darkTheme {
+  static ThemeData get lightTheme => _build(AppPalette.light);
+  static ThemeData get darkTheme => _build(AppPalette.dark);
+
+  static ThemeData _build(AppPalette p) {
+    final isDark = p.brightness == Brightness.dark;
+    final base = ColorScheme.fromSeed(
+      brightness: p.brightness,
+      seedColor: p.primary,
+    ).copyWith(
+      primary: p.primary,
+      onPrimary: p.onPrimary,
+      secondary: p.mid,
+      onSecondary: p.onPrimary,
+      surface: p.background,
+      onSurface: p.text,
+      surfaceVariant: p.surface,
+      outline: p.divider,
+      error: const Color(0xFFE5484D),
+    );
+
+    TextStyle inter(double size, FontWeight w, Color c) =>
+        GoogleFonts.inter(fontSize: size, fontWeight: w, color: c);
+
+    OutlineInputBorder border(Color c, [double w = 1]) => OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: c, width: w),
+        );
+
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
-      primaryColor: AppColors.primary,
-      scaffoldBackgroundColor: AppColors.background,
-      colorScheme: ColorScheme.fromSeed(
-        brightness: Brightness.dark,
-        seedColor: AppColors.primary,
-        primary: AppColors.primary,
-        secondary: AppColors.secondary,
-        surface: AppColors.surface,
-        background: AppColors.background,
-      ),
-      // ── AppBar ────────────────────────────────────────────────────────────
+      brightness: p.brightness,
+      primaryColor: p.primary,
+      scaffoldBackgroundColor: p.background,
+      colorScheme: base,
+      splashFactory: InkRipple.splashFactory,
+      dividerColor: p.divider,
       appBarTheme: AppBarTheme(
-        backgroundColor: Colors.transparent,
+        backgroundColor: p.background,
         elevation: 0,
+        scrolledUnderElevation: 0,
         centerTitle: false,
         surfaceTintColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
-        titleTextStyle: GoogleFonts.inter(
-          color: AppColors.textPrimary,
-          fontSize: 18,
-          fontWeight: FontWeight.w700,
-        ),
+        iconTheme: IconThemeData(color: p.text),
+        titleTextStyle: inter(18, FontWeight.w700, p.text),
       ),
-      // ── Tipografi ─────────────────────────────────────────────────────────
       textTheme: TextTheme(
-        displayLarge: GoogleFonts.inter(
-          fontSize: 32,
-          fontWeight: FontWeight.w900,
-          color: AppColors.textPrimary,
-        ),
-        headlineMedium: GoogleFonts.inter(
-          fontSize: 24,
-          fontWeight: FontWeight.w800,
-          color: AppColors.textPrimary,
-        ),
-        titleLarge: GoogleFonts.inter(
-          fontSize: 20,
-          fontWeight: FontWeight.w700,
-          color: AppColors.textPrimary,
-        ),
-        titleMedium: GoogleFonts.inter(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: AppColors.textPrimary,
-        ),
-        titleSmall: GoogleFonts.inter(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: AppColors.textSecondary,
-          letterSpacing: 0.5,
-        ),
-        bodyLarge: GoogleFonts.inter(
-          fontSize: 16,
-          color: AppColors.textPrimary,
-        ),
-        bodyMedium: GoogleFonts.inter(
-          fontSize: 14,
-          color: AppColors.textPrimary,
-        ),
-        bodySmall: GoogleFonts.inter(
-          fontSize: 12,
-          color: AppColors.textSecondary,
-        ),
+        displayLarge: inter(32, FontWeight.w900, p.text),
+        headlineMedium: inter(24, FontWeight.w800, p.text),
+        titleLarge: inter(20, FontWeight.w700, p.text),
+        titleMedium: inter(16, FontWeight.w600, p.text),
+        titleSmall: inter(13, FontWeight.w600, p.textSecondary)
+            .copyWith(letterSpacing: 0.5),
+        bodyLarge: inter(16, FontWeight.w400, p.text),
+        bodyMedium: inter(14, FontWeight.w400, p.text),
+        bodySmall: inter(12, FontWeight.w400, p.textSecondary),
       ),
-      // ── ElevatedButton ────────────────────────────────────────────────────
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary, // Neon Yeşil
-          foregroundColor: const Color(0xFF0B0F19), // İçindeki yazı simsiyah
-          elevation: 10,
-          shadowColor: AppColors.primary.withAlpha(100), // Neon parlama efekti
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          textStyle: GoogleFonts.inter(
-            fontSize: 16,
-            fontWeight: FontWeight.w900, // Daha kalın sporcu fontu
-            letterSpacing: 1.2,
-          ),
+          backgroundColor: p.primary,
+          foregroundColor: p.onPrimary,
+          disabledBackgroundColor: p.surface,
+          disabledForegroundColor: p.textHint,
+          elevation: 0,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          textStyle: inter(15, FontWeight.w800, p.onPrimary),
           padding: const EdgeInsets.symmetric(vertical: 16),
         ),
       ),
-      // ── OutlinedButton ────────────────────────────────────────────────────
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primary,
-          side: const BorderSide(color: AppColors.primary, width: 2),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          textStyle: GoogleFonts.inter(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-          ),
+          foregroundColor: p.text,
+          side: BorderSide(color: p.divider, width: 1.5),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          textStyle: inter(15, FontWeight.w700, p.text),
           padding: const EdgeInsets.symmetric(vertical: 16),
         ),
       ),
-      // ── InputDecoration (TextField) ───────────────────────────────────────
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: p.text,
+          textStyle: inter(14, FontWeight.w700, p.text),
+        ),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: p.primary,
+        foregroundColor: p.onPrimary,
+        elevation: 2,
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.cardSurface, // Açık giriş alanları
+        fillColor: p.cardSurface,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.white.withAlpha(20)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.danger),
-        ),
-        hintStyle: GoogleFonts.inter(color: AppColors.textHint),
-        labelStyle: GoogleFonts.inter(color: AppColors.textSecondary),
+        border: border(Colors.transparent, 0),
+        enabledBorder: border(Colors.transparent, 0),
+        focusedBorder: border(p.primary, 1.5),
+        errorBorder: border(const Color(0xFFE5484D)),
+        focusedErrorBorder: border(const Color(0xFFE5484D), 1.5),
+        hintStyle: inter(14, FontWeight.w400, p.textHint),
+        labelStyle: inter(14, FontWeight.w400, p.textSecondary),
+        floatingLabelStyle: inter(14, FontWeight.w600, p.text),
+        prefixIconColor: p.textSecondary,
+        suffixIconColor: p.textSecondary,
       ),
-      // ── Card ──────────────────────────────────────────────────────────────
       cardTheme: CardTheme(
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        color: AppColors.cardSurface, // Koyu kartlar
+        color: p.cardSurface,
         margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
-      // ── BottomSheet / Dialog ──────────────────────────────────────────────
-      bottomSheetTheme: const BottomSheetThemeData(
-        backgroundColor: AppColors.surface,
+      chipTheme: ChipThemeData(
+        backgroundColor: p.cardSurface,
+        selectedColor: p.primary,
+        side: BorderSide.none,
+        labelStyle: inter(12, FontWeight.w700, p.text),
+        secondaryLabelStyle: inter(12, FontWeight.w700, p.onPrimary),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: p.background,
         surfaceTintColor: Colors.transparent,
         showDragHandle: true,
-        shape: RoundedRectangleBorder(
+        dragHandleColor: p.divider,
+        shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
       ),
       dialogTheme: DialogTheme(
-        backgroundColor: AppColors.surface,
+        backgroundColor: p.background,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        titleTextStyle: GoogleFonts.inter(
-          fontSize: 18,
-          fontWeight: FontWeight.w800,
-          color: AppColors.textPrimary,
-        ),
-        contentTextStyle: GoogleFonts.inter(
-          fontSize: 14,
-          color: AppColors.textSecondary,
-        ),
+        titleTextStyle: inter(18, FontWeight.w800, p.text),
+        contentTextStyle: inter(14, FontWeight.w400, p.textSecondary),
       ),
-      dividerTheme: const DividerThemeData(color: AppColors.divider),
-      progressIndicatorTheme:
-          const ProgressIndicatorThemeData(color: AppColors.primary),
-      // ── SnackBar ──────────────────────────────────────────────────────────
+      dividerTheme: DividerThemeData(color: p.divider, space: 1),
+      listTileTheme: ListTileThemeData(
+        iconColor: p.textSecondary,
+        textColor: p.text,
+      ),
+      progressIndicatorTheme: ProgressIndicatorThemeData(
+        color: p.primary,
+        linearTrackColor: p.surface,
+        circularTrackColor: p.surface,
+      ),
+      sliderTheme: SliderThemeData(
+        activeTrackColor: p.primary,
+        thumbColor: p.primary,
+        inactiveTrackColor: p.surface,
+        overlayColor: p.primary.withAlpha(30),
+      ),
+      switchTheme: SwitchThemeData(
+        thumbColor: MaterialStateProperty.resolveWith((s) =>
+            s.contains(MaterialState.selected) ? p.onPrimary : p.mid),
+        trackColor: MaterialStateProperty.resolveWith((s) =>
+            s.contains(MaterialState.selected) ? p.primary : p.surface),
+        trackOutlineColor: MaterialStatePropertyAll(
+            isDark ? Colors.transparent : p.divider),
+      ),
+      tabBarTheme: TabBarTheme(
+        labelColor: p.text,
+        unselectedLabelColor: p.textSecondary,
+        indicatorColor: p.primary,
+        dividerColor: p.divider,
+        labelStyle: inter(12, FontWeight.w800, p.text),
+        unselectedLabelStyle: inter(12, FontWeight.w600, p.textSecondary),
+      ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: AppColors.cardSurface,
-        contentTextStyle: GoogleFonts.inter(color: AppColors.primary),
+        backgroundColor: p.primary,
+        contentTextStyle: inter(14, FontWeight.w600, p.onPrimary),
+        actionTextColor: p.onPrimary,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),

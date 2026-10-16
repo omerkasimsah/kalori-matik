@@ -59,7 +59,7 @@ class HistoryScreen extends ConsumerWidget {
           error: (_, __) => ListView(
             children: [
               const SizedBox(height: 120),
-              const Center(
+              Center(
                 child: Text('Geçmiş yüklenemedi',
                     style: TextStyle(color: AppColors.textSecondary)),
               ),
@@ -74,10 +74,10 @@ class HistoryScreen extends ConsumerWidget {
           data: (meals) {
             if (meals.isEmpty) {
               return ListView(
-                children: const [
-                  SizedBox(height: 120),
+                children: [
+                  const SizedBox(height: 120),
                   Icon(Icons.history, size: 64, color: AppColors.textHint),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   Center(
                     child: Text('Henüz geçmiş öğün yok',
                         style: TextStyle(
@@ -109,7 +109,7 @@ class HistoryScreen extends ConsumerWidget {
                         children: [
                           Text(
                             dayLabel(entry.key),
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.textPrimary),

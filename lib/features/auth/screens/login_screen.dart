@@ -54,7 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(text,
           style: TextStyle(
-              color: isError ? AppColors.danger : AppColors.primary)),
+              color: isError ? AppColors.danger : AppColors.onPrimary)),
     ));
   }
 
@@ -81,7 +81,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const SizedBox(height: 24),
-                      const Icon(
+                      Icon(
                         Icons.monitor_weight_outlined,
                         size: 80,
                         color: AppColors.primary,
@@ -144,7 +144,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ElevatedButton(
                         onPressed: _isLoading ? null : _login,
                         child: _isLoading
-                            ? const SizedBox(
+                            ? SizedBox(
                                 height: 20,
                                 width: 20,
                                 child: CircularProgressIndicator(

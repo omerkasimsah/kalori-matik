@@ -528,4 +528,6 @@ const List<Exercise> exerciseLibrary = [
 
 final Map<String, Exercise> _byId = {for (final e in exerciseLibrary) e.id: e};
 
+Map<String, Exercise> get exercisesById => _byId;
+
 Exercise exerciseById(String id) => _byId[id]!;

@@ -56,7 +56,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(SupabaseService.authErrorMessage(e),
-              style: const TextStyle(color: AppColors.danger)),
+              style: TextStyle(color: AppColors.danger)),
         ));
       }
     } finally {
@@ -147,7 +147,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ElevatedButton(
                         onPressed: _isLoading ? null : _register,
                         child: _isLoading
-                            ? const SizedBox(
+                            ? SizedBox(
                                 height: 20,
                                 width: 20,
                                 child: CircularProgressIndicator(

@@ -37,7 +37,6 @@ class WorkoutProgram {
   final String subtitle;
   final ProgramCategory category;
   final Level level;
-  final List<Color> gradient;
   final IconData icon;
   final List<ProgramItem> items;
 
@@ -47,7 +46,6 @@ class WorkoutProgram {
     required this.subtitle,
     required this.category,
     required this.level,
-    required this.gradient,
     required this.icon,
     required this.items,
   });
@@ -80,6 +78,7 @@ class WorkoutProgram {
           sets: 1,
           reps: item.effectiveDuration == null ? item.effectiveReps : null,
           notes: ex.tips.isEmpty ? null : ex.tips.first,
+          exerciseId: ex.id,
         ));
         final isLast = n == items.length - 1 && s == sets;
         if (!isLast && item.effectiveRest > 0) {
@@ -98,7 +97,6 @@ const List<WorkoutProgram> workoutPrograms = [
     subtitle: 'Göğüs, omuz ve triceps',
     category: ProgramCategory.gym,
     level: Level.intermediate,
-    gradient: [Color(0xFF3D5AF1), Color(0xFF8B5CF6)],
     icon: Icons.fitness_center,
     items: [
       ProgramItem('bench_press'),
@@ -115,7 +113,6 @@ const List<WorkoutProgram> workoutPrograms = [
     subtitle: 'Sırt ve biceps',
     category: ProgramCategory.gym,
     level: Level.intermediate,
-    gradient: [Color(0xFF00B4DB), Color(0xFF0083B0)],
     icon: Icons.fitness_center,
     items: [
       ProgramItem('lat_pulldown'),
@@ -132,7 +129,6 @@ const List<WorkoutProgram> workoutPrograms = [
     subtitle: 'Uyluk, kalça ve baldır',
     category: ProgramCategory.gym,
     level: Level.intermediate,
-    gradient: [Color(0xFFFF512F), Color(0xFFDD2476)],
     icon: Icons.directions_walk,
     items: [
       ProgramItem('back_squat'),
@@ -148,7 +144,6 @@ const List<WorkoutProgram> workoutPrograms = [
     subtitle: 'Makine ve dambılla güvenli başlangıç',
     category: ProgramCategory.gym,
     level: Level.beginner,
-    gradient: [Color(0xFF11998E), Color(0xFF38EF7D)],
     icon: Icons.accessibility_new,
     items: [
       ProgramItem('leg_press', sets: 3, reps: 12),
@@ -164,7 +159,6 @@ const List<WorkoutProgram> workoutPrograms = [
     subtitle: 'Ekipmansız, her yerde yapılır',
     category: ProgramCategory.home,
     level: Level.beginner,
-    gradient: [Color(0xFF00FF9D), Color(0xFF00B4DB)],
     icon: Icons.home_rounded,
     items: [
       ProgramItem('squat'),
@@ -181,7 +175,6 @@ const List<WorkoutProgram> workoutPrograms = [
     subtitle: '10 dakikada karın bölgesi',
     category: ProgramCategory.home,
     level: Level.intermediate,
-    gradient: [Color(0xFFF7971E), Color(0xFFFFD200)],
     icon: Icons.self_improvement,
     items: [
       ProgramItem('plank'),
@@ -197,7 +190,6 @@ const List<WorkoutProgram> workoutPrograms = [
     subtitle: 'Yüksek tempo, kısa dinlenme',
     category: ProgramCategory.cardio,
     level: Level.intermediate,
-    gradient: [Color(0xFFFF1744), Color(0xFFFF5722)],
     icon: Icons.bolt,
     items: [
       ProgramItem('jumping_jacks', sets: 3),
@@ -213,7 +205,6 @@ const List<WorkoutProgram> workoutPrograms = [
     subtitle: 'Koşu bandı ve kürek makinesi',
     category: ProgramCategory.cardio,
     level: Level.beginner,
-    gradient: [Color(0xFF654EA3), Color(0xFFEAAFC8)],
     icon: Icons.directions_run,
     items: [
       ProgramItem('treadmill_run'),
@@ -226,7 +217,6 @@ const List<WorkoutProgram> workoutPrograms = [
     subtitle: 'Antrenman sonrası veya sabah rutini',
     category: ProgramCategory.flexibility,
     level: Level.beginner,
-    gradient: [Color(0xFF8E2DE2), Color(0xFF4A00E0)],
     icon: Icons.self_improvement,
     items: [
       ProgramItem('cat_cow'),

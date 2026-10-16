@@ -181,12 +181,12 @@ class _MealEditorSheetState extends State<_MealEditorSheet> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.tips_and_updates_outlined,
+                      Icon(Icons.tips_and_updates_outlined,
                           color: AppColors.primary, size: 18),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(insight,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 color: AppColors.textSecondary,
                                 fontSize: 13,
                                 fontStyle: FontStyle.italic)),
@@ -208,7 +208,7 @@ class _MealEditorSheetState extends State<_MealEditorSheet> {
               ),
               if (widget.showPortion && widget.initial != null) ...[
                 const SizedBox(height: 16),
-                const Text('Porsiyon',
+                Text('Porsiyon',
                     style: TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 12,
@@ -288,7 +288,7 @@ class _MealEditorSheetState extends State<_MealEditorSheet> {
               const SizedBox(height: 4),
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('İptal',
+                child: Text('İptal',
                     style: TextStyle(color: AppColors.textSecondary)),
               ),
             ],

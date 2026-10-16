@@ -42,7 +42,7 @@ class StatsScreen extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -53,7 +53,7 @@ class StatsScreen extends ConsumerWidget {
                               fontWeight: FontWeight.w900,
                               color: AppColors.textPrimary),
                         ),
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Text(
                           'Sağlıklı ilerlemeni takip et',
                           style: TextStyle(
@@ -100,7 +100,7 @@ class StatsScreen extends ConsumerWidget {
                 error: (_, __) => _InfoCard(
                   child: Column(
                     children: [
-                      const Text('Veriler yüklenemedi',
+                      Text('Veriler yüklenemedi',
                           style: TextStyle(color: AppColors.textSecondary)),
                       TextButton(
                         onPressed: () => ref.invalidate(dailyTotalsProvider),
@@ -119,7 +119,7 @@ class StatsScreen extends ConsumerWidget {
               const _SectionTitle(title: 'Bugünkü Makrolar'),
               const SizedBox(height: 12),
               if (macros.protein + macros.carbs + macros.fat == 0)
-                const _InfoCard(
+                _InfoCard(
                   child: Text('Bugün henüz makro bilgisi olan öğün yok',
                       style: TextStyle(color: AppColors.textSecondary)),
                 )
@@ -266,7 +266,7 @@ class _CalorieBarChart extends StatelessWidget {
             drawVerticalLine: false,
             horizontalInterval: budget > 0 ? budget / 2 : 500,
             getDrawingHorizontalLine: (_) =>
-                const FlLine(color: AppColors.divider, strokeWidth: 1),
+                FlLine(color: AppColors.divider, strokeWidth: 1),
           ),
           borderData: FlBorderData(show: false),
           barTouchData: BarTouchData(
@@ -276,7 +276,7 @@ class _CalorieBarChart extends StatelessWidget {
                 final t = totals[group.x];
                 return BarTooltipItem(
                   '${t.date.day}.${t.date.month}\n${t.calories} kcal',
-                  const TextStyle(
+                  TextStyle(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w700,
                       fontSize: 12),
@@ -309,7 +309,7 @@ class _CalorieBarChart extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
                       isWeek ? weekDays[d.weekday - 1] : '${d.day}',
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 10, color: AppColors.textSecondary),
                     ),
                   );
@@ -353,7 +353,7 @@ class _CalorieBarChart extends StatelessWidget {
                   show: true,
                   alignment: Alignment.topRight,
                   labelResolver: (_) => 'Hedef',
-                  style: const TextStyle(
+                  style: TextStyle(
                       color: AppColors.primary,
                       fontSize: 10,
                       fontWeight: FontWeight.bold),
@@ -387,7 +387,7 @@ class _MacroPieCard extends StatelessWidget {
           value: v,
           color: c,
           title: totalKcal > 0 ? '${(v / totalKcal * 100).round()}%' : '',
-          titleStyle: const TextStyle(
+          titleStyle: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.bold,
               color: AppColors.background),
@@ -432,7 +432,7 @@ class _MacroPieCard extends StatelessWidget {
                     label: 'Yağ',
                     value: '${fat.toStringAsFixed(1)}g'),
                 const Divider(height: 20),
-                const Text('Yüzdeler kalori katkısına göre',
+                Text('Yüzdeler kalori katkısına göre',
                     style: TextStyle(
                         fontSize: 10, color: AppColors.textHint)),
               ],
@@ -466,7 +466,7 @@ class _MacroLegendRow extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           child: Text(label,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 12, color: AppColors.textSecondary)),
         ),
         Text(value,
@@ -546,7 +546,7 @@ class _StatCard extends StatelessWidget {
                           color: color)),
                   TextSpan(
                       text: ' $unit',
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 10, color: AppColors.textSecondary)),
                 ],
               ),
@@ -554,7 +554,7 @@ class _StatCard extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(label,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 11, color: AppColors.textSecondary)),
         ],
       ),
@@ -570,7 +570,7 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: const TextStyle(
+      style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.bold,
           color: AppColors.textPrimary),

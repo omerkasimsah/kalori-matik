@@ -76,7 +76,7 @@ class MealListItem extends StatelessWidget {
                   children: [
                     Text(
                       meal.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary,
@@ -88,7 +88,7 @@ class MealListItem extends StatelessWidget {
                       const SizedBox(height: 3),
                       Text(
                         meal.insight!,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 12,
                             color: AppColors.textSecondary,
                             fontStyle: FontStyle.italic),
@@ -107,12 +107,12 @@ class MealListItem extends StatelessWidget {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.support_agent_rounded,
+                            Icon(Icons.support_agent_rounded,
                                 size: 15, color: AppColors.secondary),
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(meal.coachComment!,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                       fontSize: 12,
                                       color: AppColors.textPrimary)),
                             ),
@@ -153,13 +153,13 @@ class MealListItem extends StatelessWidget {
                 children: [
                   Text(
                     '${meal.calories}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w900,
                       fontSize: 18,
                     ),
                   ),
-                  const Text(
+                  Text(
                     'kcal',
                     style: TextStyle(
                         color: AppColors.textSecondary,
@@ -169,7 +169,7 @@ class MealListItem extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     meal.time,
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: AppColors.textSecondary, fontSize: 11),
                   ),
                 ],
@@ -199,13 +199,13 @@ class MealListItem extends StatelessWidget {
           color: AppColors.danger.withAlpha(40),
           borderRadius: BorderRadius.circular(18),
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text('Sil',
                 style: TextStyle(
                     color: AppColors.danger, fontWeight: FontWeight.w700)),
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
             Icon(Icons.delete_outline, color: AppColors.danger),
           ],
         ),

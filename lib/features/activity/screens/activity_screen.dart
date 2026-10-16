@@ -98,7 +98,7 @@ class ActivityScreen extends ConsumerWidget {
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            const SliverAppBar(
+            SliverAppBar(
               pinned: true,
               backgroundColor: AppColors.background,
               surfaceTintColor: Colors.transparent,
@@ -142,13 +142,13 @@ class ActivityScreen extends ConsumerWidget {
                                 horizontal: 16, vertical: 6),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(18)),
-                            leading: const CircleAvatar(
+                            leading: CircleAvatar(
                               backgroundColor: AppColors.surface,
                               child: Icon(Icons.support_agent_rounded,
                                   color: AppColors.secondary),
                             ),
                             title: Text(title,
-                                style: const TextStyle(
+                                style: TextStyle(
                                     color: AppColors.textPrimary,
                                     fontWeight: FontWeight.w700)),
                             subtitle: Text(
@@ -156,10 +156,10 @@ class ActivityScreen extends ConsumerWidget {
                                 if (plan['week_day'] != null) plan['week_day'],
                                 '$count egzersiz',
                               ].join(' • '),
-                              style: const TextStyle(
+                              style: TextStyle(
                                   color: AppColors.textSecondary),
                             ),
-                            trailing: const Icon(Icons.play_circle_fill,
+                            trailing: Icon(Icons.play_circle_fill,
                                 color: AppColors.primary, size: 36),
                             onTap: count == 0
                                 ? null
@@ -253,11 +253,11 @@ class ActivityScreen extends ConsumerWidget {
                               color: AppColors.primary.withAlpha(28),
                               borderRadius: BorderRadius.circular(14),
                             ),
-                            child: const Icon(Icons.menu_book_rounded,
+                            child: Icon(Icons.menu_book_rounded,
                                 color: AppColors.primary),
                           ),
                           const SizedBox(width: 14),
-                          const Expanded(
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -266,7 +266,7 @@ class ActivityScreen extends ConsumerWidget {
                                         color: AppColors.textPrimary,
                                         fontWeight: FontWeight.w800,
                                         fontSize: 16)),
-                                SizedBox(height: 2),
+                                const SizedBox(height: 2),
                                 Text(
                                     'Her hareketin nasıl yapıldığını adım adım öğren',
                                     style: TextStyle(
@@ -275,7 +275,7 @@ class ActivityScreen extends ConsumerWidget {
                               ],
                             ),
                           ),
-                          const Icon(Icons.chevron_right,
+                          Icon(Icons.chevron_right,
                               color: AppColors.textSecondary),
                         ],
                       ),
@@ -302,7 +302,7 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
       sliver: SliverToBoxAdapter(
         child: Text(text,
-            style: const TextStyle(
+            style: TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
@@ -349,55 +349,51 @@ class _ProgramCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = program;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 230,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: p.gradient,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(22),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(p.icon, color: Colors.white, size: 26),
-                const Spacer(),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withAlpha(60),
-                    borderRadius: BorderRadius.circular(10),
+    return Material(
+      color: AppColors.cardSurface,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: onTap,
+        child: Container(
+          width: 220,
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(p.icon, color: AppColors.onPrimary, size: 20),
                   ),
-                  child: Text(p.level.label,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
+                  const Spacer(),
+                  Text(p.level.label,
+                      style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
                           fontWeight: FontWeight.w700)),
-                ),
-              ],
-            ),
-            const Spacer(),
-            Text(p.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 17,
-                    height: 1.15)),
-            const SizedBox(height: 4),
-            Text('${p.estimatedMinutes} dk • ${p.items.length} egzersiz',
-                style: TextStyle(
-                    color: Colors.white.withAlpha(230), fontSize: 12)),
-          ],
+                ],
+              ),
+              const Spacer(),
+              Text(p.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                      height: 1.2)),
+              const SizedBox(height: 4),
+              Text('${p.estimatedMinutes} dk • ${p.items.length} egzersiz',
+                  style: TextStyle(
+                      color: AppColors.textSecondary, fontSize: 12)),
+            ],
+          ),
         ),
       ),
     );
@@ -430,7 +426,7 @@ class _TodayActivities extends ConsumerWidget {
         children: [
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text('Bugünkü Aktiviteler',
                     style: TextStyle(
                         color: AppColors.textPrimary,
@@ -445,8 +441,8 @@ class _TodayActivities extends ConsumerWidget {
             ],
           ),
           if (entries.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
                 'Henüz aktivite yok. Koşu, yüzme, futbol… ne yaptıysan ekle; '
                 'yaktığın kalori günlük bütçene eklenir.',
@@ -468,22 +464,22 @@ class _TodayActivities extends ConsumerWidget {
                   child: Icon(e.sport.icon, color: AppColors.primary, size: 20),
                 ),
                 title: Text(e.title,
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.w600)),
                 subtitle: Text('${e.minutes} dk',
-                    style: const TextStyle(color: AppColors.textSecondary)),
+                    style: TextStyle(color: AppColors.textSecondary)),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text('+${e.calories} kcal',
-                        style: const TextStyle(
+                        style: TextStyle(
                             color: AppColors.carbs,
                             fontWeight: FontWeight.w800)),
                     IconButton(
                       tooltip: 'Sil',
                       visualDensity: VisualDensity.compact,
-                      icon: const Icon(Icons.close,
+                      icon: Icon(Icons.close,
                           size: 18, color: AppColors.textSecondary),
                       onPressed: () =>
                           ref.read(activityLogProvider.notifier).remove(e.id),
@@ -554,10 +550,10 @@ class _LogActivitySheetState extends ConsumerState<_LogActivitySheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Süre',
+              Text('Süre',
                   style: TextStyle(color: AppColors.textSecondary)),
               Text('${_minutes.round()} dk',
-                  style: const TextStyle(
+                  style: TextStyle(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w800)),
             ],
@@ -579,11 +575,11 @@ class _LogActivitySheetState extends ConsumerState<_LogActivitySheet> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.local_fire_department,
+                Icon(Icons.local_fire_department,
                     color: AppColors.carbs),
                 const SizedBox(width: 8),
                 Text('≈ $kcal kcal yakılır',
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: AppColors.carbs, fontWeight: FontWeight.w800)),
               ],
             ),
@@ -628,15 +624,15 @@ class _StepsCard extends ConsumerWidget {
       child: !pedometer.isAvailable
           ? Column(
               children: [
-                const Icon(Icons.directions_walk,
+                Icon(Icons.directions_walk,
                     size: 40, color: AppColors.textSecondary),
                 const SizedBox(height: 12),
-                const Text('Adım sayar kullanılamıyor',
+                Text('Adım sayar kullanılamıyor',
                     style: TextStyle(
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.bold)),
                 const SizedBox(height: 6),
-                const Text(
+                Text(
                   'Fiziksel aktivite iznini verdiğinden emin ol. '
                   'Adım sayımı yalnızca Android ve iOS cihazlarda çalışır.',
                   textAlign: TextAlign.center,
@@ -677,11 +673,11 @@ class _StepsCard extends ConsumerWidget {
                                     child: CircularProgressIndicator(
                                         strokeWidth: 2))
                                 : Text('$steps',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                         color: AppColors.textPrimary,
                                         fontSize: 22,
                                         fontWeight: FontWeight.w900)),
-                            const Text('adım',
+                            Text('adım',
                                 style: TextStyle(
                                     color: AppColors.textSecondary,
                                     fontSize: 11)),
@@ -696,7 +692,7 @@ class _StepsCard extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const _Metric(
+                      _Metric(
                           icon: Icons.flag_outlined,
                           label: 'Hedef',
                           value: '$dailyStepGoal adım',
@@ -746,7 +742,7 @@ class _Metric extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(label,
-                  style: const TextStyle(
+                  style: TextStyle(
                       color: AppColors.textSecondary, fontSize: 11)),
               Text(value,
                   style: TextStyle(

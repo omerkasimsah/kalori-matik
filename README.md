@@ -20,7 +20,7 @@ KaloriMatik, günlük besin ve kalori takibini manuel arama listeleriyle vakit k
 - **🏋️ Antrenman Merkezi:** 9 hazır program (Gym itme/çekme/bacak, yeni başlayan, evde tüm vücut, karın, HIIT, salon kardiyo, esneme), 40 egzersizlik çevrimdışı kütüphane (adım adım anlatım, ipuçları, kas grubu/ekipman filtresi), set-set geri sayımlı antrenman oynatıcı, 16 spor için MET tabanlı kalori kaydı ve koçunuzun atadığı planlar. Yakılan kalori günlük bütçenize eklenir.
 - **📊 İstatistikler & Geçmiş:** 7/30 günlük kalori grafiği, günlük ortalama, hedefte kalınan gün sayısı, kayıt serisi ve gün gün gruplanmış 30 günlük geçmiş.
 - **🧑‍⚕️ Diyetisyen / Koç Modülü:** Panel danışanları "ilgi bekliyor / yolunda" durumuna göre sıralar (kayıt girmeyen veya hedefi aşan danışanlar üstte). Danışan detayında 7 günlük kalori, kilo grafiği, öğünlere yorum, beslenme/antrenman planı ve notlar bulunur. Danışan bunları ana sayfada ve **"Koçum"** ekranında görür.
-- **🌙 Modern Koyu Tema:** Tüm ekranlarda tutarlı, yüksek kontrastlı koyu arayüz.
+- **🎨 Sade Tasarım, Açık & Koyu Tema:** Nötr siyah-beyaz arayüz; açık temada beyaz, koyu temada siyah ağırlıklı. Profil → Görünüm'den Sistem / Açık / Koyu seçilir. Renk yalnızca anlam taşıyorsa (uyarı, hata) kullanılır.
 
 ---
 
@@ -115,6 +115,9 @@ flutter test
 ```
 
 ---
+
+## 🙏 Üçüncü Taraf Kaynaklar
+- Egzersiz görselleri ve hareket kayıtları [free-exercise-db](https://github.com/yuhonas/free-exercise-db) projesinden alınmıştır (Unlicense / kamu malı). Görseller `assets/exercises/` altındadır.
 
 ## 📄 Lisans
 Bu proje [MIT Lisansı](LICENSE) kapsamında açık kaynak olarak sunulmuştur.

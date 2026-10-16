@@ -23,32 +23,38 @@ class ProgramDetailScreen extends StatelessWidget {
         slivers: [
           SliverAppBar(
             pinned: true,
-            expandedHeight: 200,
             backgroundColor: AppColors.background,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
+            surfaceTintColor: Colors.transparent,
+            title: Text(p.title),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+            sliver: SliverToBoxAdapter(
+              child: Container(
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: p.gradient,
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: AppColors.cardSurface,
+                  borderRadius: BorderRadius.circular(22),
                 ),
-                padding: const EdgeInsets.fromLTRB(24, 90, 24, 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.end,
+                child: Row(
                   children: [
-                    Icon(p.icon, color: Colors.white.withAlpha(230), size: 34),
-                    const SizedBox(height: 8),
-                    Text(p.title,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w900)),
-                    Text(p.subtitle,
-                        style: TextStyle(
-                            color: Colors.white.withAlpha(220), fontSize: 13)),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(p.icon, color: AppColors.onPrimary, size: 28),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(p.subtitle,
+                          style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              height: 1.3)),
+                    ),
                   ],
                 ),
               ),
@@ -75,7 +81,7 @@ class ProgramDetailScreen extends StatelessWidget {
                   wide: true,
                 ),
                 const SizedBox(height: 24),
-                const Text('EGZERSİZLER',
+                Text('EGZERSİZLER',
                     style: TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 12,
@@ -88,7 +94,7 @@ class ProgramDetailScreen extends StatelessWidget {
                     child: _ProgramRow(item: item),
                   ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Isınmadan başlama; ilk setlerde hafif ağırlık kullan. '
                   'Ağrı hissedersen dur ve bir uzmana danış.',
                   style: TextStyle(color: AppColors.textHint, fontSize: 11),
@@ -142,12 +148,12 @@ class _Info extends StatelessWidget {
                 Text(value,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.w800,
                         fontSize: 14)),
                 Text(label,
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: AppColors.textSecondary, fontSize: 11)),
               ],
             ),
@@ -187,20 +193,20 @@ class _ProgramRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(e.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                             color: AppColors.textPrimary,
                             fontWeight: FontWeight.w700)),
                     Text(e.muscle.label,
-                        style: const TextStyle(
+                        style: TextStyle(
                             color: AppColors.textSecondary, fontSize: 12)),
                   ],
                 ),
               ),
               Text(rx,
-                  style: const TextStyle(
+                  style: TextStyle(
                       color: AppColors.primary, fontWeight: FontWeight.w800)),
               const SizedBox(width: 4),
-              const Icon(Icons.chevron_right,
+              Icon(Icons.chevron_right,
                   size: 18, color: AppColors.textSecondary),
             ],
           ),

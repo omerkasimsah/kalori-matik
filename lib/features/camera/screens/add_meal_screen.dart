@@ -173,7 +173,7 @@ class _AddMealScreenState extends ConsumerState<AddMealScreen> {
       if (!mounted) return;
       setState(() => _isSaving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('Öğün kaydedilemedi. Bağlantınızı kontrol edin.',
               style: TextStyle(color: AppColors.danger)),
         ),
@@ -234,7 +234,7 @@ class _AddMealScreenState extends ConsumerState<AddMealScreen> {
                       children: [
                         Text(
                           _error!,
-                          style: const TextStyle(
+                          style: TextStyle(
                               color: AppColors.danger, fontSize: 13),
                           textAlign: TextAlign.center,
                         ),
@@ -329,11 +329,11 @@ class _AddMealScreenState extends ConsumerState<AddMealScreen> {
                   color: AppColors.primary.withAlpha(30),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.restaurant_menu,
+                child: Icon(Icons.restaurant_menu,
                     size: 64, color: AppColors.primary),
               ),
               const SizedBox(height: 20),
-              const Text(
+              Text(
                 'Tabağının fotoğrafını çek',
                 style: TextStyle(
                     fontSize: 18,
@@ -341,7 +341,7 @@ class _AddMealScreenState extends ConsumerState<AddMealScreen> {
                     color: AppColors.textPrimary),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Yapay zeka kalorisini hesaplasın!',
                 style: TextStyle(color: AppColors.textSecondary),
               ),
@@ -368,7 +368,7 @@ class _RecentMeals extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('SIK YEDİKLERİN',
+          Text('SIK YEDİKLERİN',
               style: TextStyle(
                   color: AppColors.textSecondary,
                   fontSize: 11,
@@ -388,7 +388,7 @@ class _RecentMeals extends StatelessWidget {
                   backgroundColor: AppColors.cardSurface,
                   side: BorderSide.none,
                   label: Text('${m.name} · ${m.calories}',
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: AppColors.textPrimary, fontSize: 12)),
                 );
               },
@@ -437,12 +437,12 @@ class _AnalyzingWidgetState extends State<_AnalyzingWidget>
       opacity: _anim,
       child: Column(
         children: [
-          const CircularProgressIndicator(
+          CircularProgressIndicator(
               color: AppColors.primary, strokeWidth: 3),
           const SizedBox(height: 12),
           Text(
             widget.label,
-            style: const TextStyle(
+            style: TextStyle(
                 color: AppColors.textSecondary,
                 fontWeight: FontWeight.w500,
                 fontSize: 15),

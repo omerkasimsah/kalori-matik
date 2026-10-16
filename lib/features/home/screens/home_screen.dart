@@ -74,16 +74,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.cloud_off,
+                Icon(Icons.cloud_off,
                     size: 56, color: AppColors.textSecondary),
                 const SizedBox(height: 16),
-                const Text('Profil yüklenemedi',
+                Text('Profil yüklenemedi',
                     style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: AppColors.textPrimary)),
                 const SizedBox(height: 8),
-                const Text('İnternet bağlantınızı kontrol edip tekrar deneyin.',
+                Text('İnternet bağlantınızı kontrol edip tekrar deneyin.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: AppColors.textSecondary)),
                 const SizedBox(height: 24),
@@ -147,15 +147,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               backgroundColor: Colors.transparent,
               elevation: 0,
               shape: const CircleBorder(),
-              child: const Icon(Icons.add_a_photo_outlined,
+              child: Icon(Icons.add_a_photo_outlined,
                   size: 26, color: AppColors.background),
             ),
           ),
           bottomNavigationBar: BottomAppBar(
             shape: const CircularNotchedRectangle(),
             notchMargin: 8,
-            color: AppColors.surface,
-            elevation: 8,
+            color: AppColors.cardSurface,
+            elevation: 0,
             surfaceTintColor: Colors.transparent,
             padding: EdgeInsets.zero,
             child: SizedBox(
@@ -316,7 +316,7 @@ class _CalorieDashboard extends ConsumerWidget {
         ),
       );
     } catch (_) {
-      messenger.showSnackBar(const SnackBar(
+      messenger.showSnackBar(SnackBar(
         content: Text(
             'Öğün silinemedi. Veritabanında silme izni (supabase_phase3.sql) gerekli olabilir.',
             style: TextStyle(color: AppColors.danger)),
@@ -326,7 +326,7 @@ class _CalorieDashboard extends ConsumerWidget {
 
   void _showError(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message, style: const TextStyle(color: AppColors.danger)),
+      content: Text(message, style: TextStyle(color: AppColors.danger)),
     ));
   }
 
@@ -356,7 +356,7 @@ class _CalorieDashboard extends ConsumerWidget {
             title: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Kalori Matik',
                   style: TextStyle(
                     fontSize: 18,
@@ -367,7 +367,7 @@ class _CalorieDashboard extends ConsumerWidget {
                 if (userName.isNotEmpty)
                   Text(
                     '${_greeting()}, $userName 👋',
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 11, color: AppColors.textSecondary),
                   ),
               ],
@@ -375,7 +375,7 @@ class _CalorieDashboard extends ConsumerWidget {
             actions: [
               IconButton(
                 tooltip: 'Geçmiş',
-                icon: const Icon(Icons.history_rounded,
+                icon: Icon(Icons.history_rounded,
                     color: AppColors.textSecondary),
                 onPressed: () => context.push('/history'),
               ),
@@ -421,7 +421,7 @@ class _CalorieDashboard extends ConsumerWidget {
                   ),
                   Text(
                     '${mealsState.meals.length} öğün',
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: AppColors.primary,
                         fontWeight: FontWeight.w600,
                         fontSize: 12),
@@ -432,8 +432,8 @@ class _CalorieDashboard extends ConsumerWidget {
           ),
 
           if (mealsState.meals.isNotEmpty)
-            const SliverPadding(
-              padding: EdgeInsets.fromLTRB(24, 4, 24, 0),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(24, 4, 24, 0),
               sliver: SliverToBoxAdapter(
                 child: Text(
                   'Düzenlemek için dokun, silmek için sola kaydır',
@@ -448,10 +448,10 @@ class _CalorieDashboard extends ConsumerWidget {
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
             sliver: mealsState.isLoading && mealsState.meals.isEmpty
-                ? const SliverToBoxAdapter(
+                ? SliverToBoxAdapter(
                     child: Center(
                       child: Padding(
-                        padding: EdgeInsets.all(32),
+                        padding: const EdgeInsets.all(32),
                         child: CircularProgressIndicator(
                             color: AppColors.primary, strokeWidth: 2),
                       ),
@@ -514,7 +514,7 @@ class _WeightGoalCard extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          gradient: AppColors.coolGradient,
+          color: AppColors.cardSurface,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
@@ -522,11 +522,11 @@ class _WeightGoalCard extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.white.withAlpha(30),
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(12),
               ),
               child:
-                  const Icon(Icons.trending_down, color: Colors.white, size: 24),
+                  Icon(Icons.trending_down, color: AppColors.textPrimary, size: 24),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -535,8 +535,8 @@ class _WeightGoalCard extends ConsumerWidget {
                 children: [
                   Text(
                     'Hedef: −${targetKg.toStringAsFixed(1)} kg / $targetDays gün',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
@@ -544,7 +544,7 @@ class _WeightGoalCard extends ConsumerWidget {
                   Text(
                     'Günlük limit: $tdee kcal',
                     style: TextStyle(
-                      color: Colors.white.withAlpha(220),
+                      color: AppColors.textSecondary,
                       fontSize: 12,
                     ),
                   ),
@@ -578,11 +578,11 @@ class _EmptyState extends StatelessWidget {
               color: AppColors.primary.withAlpha(20),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.no_food_outlined,
+            child: Icon(Icons.no_food_outlined,
                 size: 40, color: AppColors.primary),
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'Henüz öğün eklenmedi',
             style: TextStyle(
                 fontWeight: FontWeight.bold,
@@ -590,7 +590,7 @@ class _EmptyState extends StatelessWidget {
                 fontSize: 16),
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'İlk öğününüzü eklemek için\naşağıdaki kamera butonuna basın',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
@@ -617,11 +617,11 @@ class _ErrorState extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const Icon(Icons.cloud_off, color: AppColors.textSecondary, size: 36),
+          Icon(Icons.cloud_off, color: AppColors.textSecondary, size: 36),
           const SizedBox(height: 12),
           Text(message,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.textSecondary)),
+              style: TextStyle(color: AppColors.textSecondary)),
           const SizedBox(height: 8),
           TextButton.icon(
             onPressed: onRetry,

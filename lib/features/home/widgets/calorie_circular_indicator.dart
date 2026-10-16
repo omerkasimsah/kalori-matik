@@ -30,10 +30,10 @@ class CalorieCircularIndicator extends ConsumerWidget {
       statusLabel = 'Kırmızı çizgiye yaklaştın, akşam hafif bir öğün seç.';
     } else if (consumed == 0) {
       progressColor = AppColors.primary;
-      statusLabel = 'Güne hazırsın! İlk öğününü ekleyerek başla. 💎';
+      statusLabel = 'Güne hazırsın! İlk öğününü ekleyerek başla.';
     } else {
       progressColor = AppColors.primary;
-      statusLabel = 'Bakiye tıkırında, harika gidiyorsun! 💎';
+      statusLabel = 'Bakiye tıkırında, harika gidiyorsun!';
     }
 
     return Column(
@@ -50,7 +50,7 @@ class CalorieCircularIndicator extends ConsumerWidget {
               return Stack(
                 fit: StackFit.expand,
                 children: [
-                  const CircularProgressIndicator(
+                  CircularProgressIndicator(
                     value: 1.0,
                     strokeWidth: 22,
                     color: AppColors.cardSurface, // Koyu halka zemini
@@ -78,7 +78,7 @@ class CalorieCircularIndicator extends ConsumerWidget {
                         ),
                         Text(
                           over ? 'KCAL fazla' : 'KCAL kalan',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                             color: AppColors.textSecondary,
@@ -173,7 +173,7 @@ class _SummaryTile extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
               fontSize: 10,
               color: AppColors.textSecondary,
               letterSpacing: 0.3),
@@ -191,7 +191,7 @@ class _SummaryTile extends StatelessWidget {
               ),
               TextSpan(
                 text: ' $unit',
-                style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
               ),
             ],
           ),

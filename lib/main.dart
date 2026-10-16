@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -6,7 +7,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 // Çekirdek (Core) ve Uygulama Teması İçe Aktarımları
 import 'core/config/app_config.dart';
 import 'core/services/supabase_service.dart';
+import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_provider.dart';
 
 // Özellik (Feature) / Modül Ekranlarının İçe Aktarımları
 import 'features/auth/screens/login_screen.dart';
@@ -16,6 +19,8 @@ import 'features/home/screens/home_screen.dart';
 import 'features/camera/screens/add_meal_screen.dart';
 import 'features/home/screens/client_detail_screen.dart';
 import 'features/history/screens/history_screen.dart';
+import 'features/activity/data/exercise_library.dart';
+import 'features/activity/screens/exercise_screens.dart';
 import 'features/tracking/screens/tracking_screen.dart';
 
 void main() async {
@@ -38,16 +43,33 @@ void main() async {
   );
 }
 
-class KaloriMatikApp extends StatelessWidget {
+class KaloriMatikApp extends ConsumerWidget {
   const KaloriMatikApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mode = ref.watch(themeModeProvider);
     return MaterialApp.router(
-      title: 'Kalori Matik',
-      theme: AppTheme.darkTheme,
+      title: 'KaloriMatik',
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: mode,
       routerConfig: _router,
       debugShowCheckedModeBanner: false,
+      // AppColors aktif temayı okur; tema değişince alt ağaç yeniden kurulur.
+      builder: (context, child) {
+        final brightness = Theme.of(context).brightness;
+        AppColors.apply(brightness);
+        return KeyedSubtree(
+          key: ValueKey(brightness),
+          child: AnnotatedRegion<SystemUiOverlayStyle>(
+            value: brightness == Brightness.dark
+                ? SystemUiOverlayStyle.light
+                : SystemUiOverlayStyle.dark,
+            child: child ?? const SizedBox.shrink(),
+          ),
+        );
+      },
     );
   }
 }
@@ -91,6 +113,17 @@ final _router = GoRouter(
     GoRoute(
       path: '/add-meal',
       builder: (context, state) => const AddMealScreen(),
+    ),
+    GoRoute(
+      path: '/exercises',
+      builder: (context, state) => const ExerciseLibraryScreen(),
+    ),
+    GoRoute(
+      path: '/exercise/:id',
+      redirect: (context, state) =>
+          exercisesById.containsKey(state.pathParameters['id']) ? null : '/exercises',
+      builder: (context, state) => ExerciseDetailScreen(
+          exercise: exerciseById(state.pathParameters['id']!)),
     ),
     GoRoute(
       path: '/history',
@@ -158,62 +191,53 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF1a8a4a), Color(0xFF2ECC71), Color(0xFF27AE60)],
-          ),
-        ),
-        child: Center(
-          child: FadeTransition(
-            opacity: _fadeAnim,
-            child: ScaleTransition(
-              scale: _scaleAnim,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withAlpha(40),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.monitor_weight_outlined,
-                        size: 56, color: Colors.white),
+      backgroundColor: AppColors.background,
+      body: Center(
+        child: FadeTransition(
+          opacity: _fadeAnim,
+          child: ScaleTransition(
+            scale: _scaleAnim,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 96,
+                  height: 96,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(28),
                   ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Kalori Matik',
-                    style: TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      letterSpacing: 1.5,
-                    ),
+                  child: Icon(Icons.restaurant_menu_rounded,
+                      size: 48, color: AppColors.onPrimary),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'KaloriMatik',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.textPrimary,
+                    letterSpacing: -0.5,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Kalori Bankan, Sağlıklı Yaşamın',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.white.withAlpha(200),
-                      letterSpacing: 0.5,
-                    ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Yediğini bil, hedefine ulaş',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
                   ),
-                  const SizedBox(height: 48),
-                  SizedBox(
-                    width: 32,
-                    height: 32,
-                    child: CircularProgressIndicator(
-                      color: Colors.white.withAlpha(180),
-                      strokeWidth: 2.5,
-                    ),
+                ),
+                const SizedBox(height: 48),
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    color: AppColors.textHint,
+                    strokeWidth: 2,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -221,4 +245,3 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 }
-
