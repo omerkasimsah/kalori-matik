@@ -156,6 +156,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               )
                             : const Text('Kayıt Ol'),
                       ),
+                      const SizedBox(height: 14),
+                      Text(
+                        'Kayıt olarak Gizlilik Politikası\'nı kabul etmiş olursun. '
+                        'KaloriMatik tıbbi tavsiye vermez; kalori ve antrenman '
+                        'önerileri tahminidir. Sağlık durumunla ilgili kararlar '
+                        'için bir uzmana danış.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 11,
+                            height: 1.4),
+                      ),
                       const SizedBox(height: 12),
                       TextButton(
                         onPressed: () => context.go('/login'),

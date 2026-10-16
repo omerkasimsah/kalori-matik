@@ -35,65 +35,157 @@ final coachContentProvider = FutureProvider<CoachContent>((ref) async {
   return CoachContent(nutritionPlan: results[0], notes: results[1]);
 });
 
-/// Ana sayfada koçtan gelen içerik varsa gösterilen özet kartı.
+/// Danışanın koç/diyetisyen bağlantıları (bekleyen davetler dahil).
+final connectionsProvider = FutureProvider<List<CoachConnection>>((ref) async {
+  ref.watch(currentUserIdProvider);
+  try {
+    return await SupabaseService.getMyConnections();
+  } catch (_) {
+    return []; // Phase 5 SQL henüz çalıştırılmamış olabilir
+  }
+});
+
+/// Ana sayfada: bekleyen davetler (kabul / reddet) ve bağlı koç özeti.
 class CoachSummaryCard extends ConsumerWidget {
   const CoachSummaryCard({super.key});
 
+  Future<void> _respond(BuildContext context, WidgetRef ref,
+      CoachConnection c, bool accept) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await SupabaseService.respondToConnection(c.id, accept: accept);
+      ref.invalidate(connectionsProvider);
+      ref.invalidate(coachContentProvider);
+      messenger.showSnackBar(SnackBar(
+          content: Text(accept
+              ? '${c.displayName} artık verilerini görebilir.'
+              : 'Davet reddedildi.')));
+    } catch (_) {
+      messenger.showSnackBar(SnackBar(
+          content: Text('İşlem yapılamadı. Tekrar deneyin.',
+              style: TextStyle(color: AppColors.danger))));
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final conns = ref.watch(connectionsProvider).valueOrNull ?? const [];
     final content = ref.watch(coachContentProvider).valueOrNull;
-    if (content == null || content.isEmpty) return const SizedBox.shrink();
+    final pending = conns.where((c) => !c.isActive).toList();
+    final active = conns.where((c) => c.isActive).toList();
+    if (pending.isEmpty && active.isEmpty) return const SizedBox.shrink();
 
-    final latestNote =
-        content.notes.isNotEmpty ? content.notes.first['note'] as String? : null;
+    final latestNote = (content?.notes.isNotEmpty ?? false)
+        ? content!.notes.first['note'] as String?
+        : null;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-      child: Material(
-        color: AppColors.cardSurface,
-        borderRadius: BorderRadius.circular(20),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: () => context.push('/coach'),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.secondary.withAlpha(30),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(Icons.support_agent_rounded,
-                      color: AppColors.secondary),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Koçundan',
+      child: Column(
+        children: [
+          for (final c in pending)
+            Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.cardSurface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.primary, width: 1.5),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    Icon(Icons.mail_outline, color: AppColors.textPrimary),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                          '${c.displayName} seni danışanı olarak eklemek istiyor',
                           style: TextStyle(
                               color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 2),
-                      Text(
-                        latestNote ??
-                            '${content.nutritionPlan.length} öğünlük beslenme planın hazır',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            color: AppColors.textSecondary, fontSize: 12),
+                              fontWeight: FontWeight.w800)),
+                    ),
+                  ]),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Kabul edersen ${c.roleLabel.toLowerCase()} öğünlerini, kilonu '
+                    've profil bilgilerini görebilir; plan ve not ekleyebilir. '
+                    'Bağlantıyı istediğin zaman kaldırabilirsin.',
+                    style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                        height: 1.4),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => _respond(context, ref, c, false),
+                        child: const Text('Reddet'),
                       ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => _respond(context, ref, c, true),
+                        child: const Text('Kabul Et'),
+                      ),
+                    ),
+                  ]),
+                ],
+              ),
+            ),
+          for (final c in active)
+            Material(
+              color: AppColors.cardSurface,
+              borderRadius: BorderRadius.circular(20),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(20),
+                onTap: () => context.push('/coach'),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(Icons.support_agent_rounded,
+                            color: AppColors.textPrimary),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('${c.roleLabel}: ${c.displayName}',
+                                style: TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontWeight: FontWeight.w700)),
+                            const SizedBox(height: 2),
+                            Text(
+                              latestNote ??
+                                  ((content?.nutritionPlan.isNotEmpty ?? false)
+                                      ? '${content!.nutritionPlan.length} öğünlük beslenme planın hazır'
+                                      : 'Henüz plan veya not eklemedi'),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  color: AppColors.textSecondary, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.chevron_right,
+                          color: AppColors.textSecondary),
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right, color: AppColors.textSecondary),
-              ],
+              ),
             ),
-          ),
-        ),
+        ],
       ),
     );
   }
@@ -108,6 +200,8 @@ class TrackingScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(coachContentProvider);
+    final conns = ref.watch(connectionsProvider).valueOrNull ?? const [];
+    final active = conns.where((c) => c.isActive).toList();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -127,16 +221,22 @@ class TrackingScreen extends ConsumerWidget {
             ],
           ),
           data: (content) {
+            final header = <Widget>[
+              for (final c in active) _ConnectionTile(connection: c),
+            ];
             if (content.isEmpty) {
               return ListView(
-                padding: const EdgeInsets.all(32),
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
                 children: [
-                  const SizedBox(height: 60),
+                  ...header,
+                  const SizedBox(height: 40),
                   Icon(Icons.support_agent_rounded,
                       size: 64, color: AppColors.textHint),
                   const SizedBox(height: 16),
                   Text(
-                    'Henüz koçundan bir plan yok',
+                    active.isEmpty
+                        ? 'Henüz bir koçun yok'
+                        : 'Henüz plan veya not eklenmedi',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         color: AppColors.textPrimary,
@@ -145,8 +245,10 @@ class TrackingScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'KaloriID\'ni Profil sekmesinden koçunla paylaş; '
-                    'atadığı plan ve notlar burada görünecek.',
+                    active.isEmpty
+                        ? "KaloriID'ni (Profil sekmesi) koçunla paylaş. Seni "
+                            'eklediğinde ana sayfada onay isteği göreceksin.'
+                        : 'Koçun plan veya not eklediğinde burada görünecek.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: AppColors.textSecondary),
                   ),
@@ -166,6 +268,8 @@ class TrackingScreen extends ConsumerWidget {
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
               children: [
+                ...header,
+                const SizedBox(height: 8),
                 if (plan.isNotEmpty) ...[
                   const _SectionTitle('BESLENME PLANI'),
                   ...plan.map((item) => _PlanItem(item: item)),
@@ -308,6 +412,80 @@ class _NoteItem extends StatelessWidget {
           Text(
             '${(note['category'] as String? ?? 'genel').toUpperCase()} · $date',
             style: TextStyle(color: AppColors.textHint, fontSize: 11),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Bağlı koç satırı; bağlantı buradan kaldırılabilir.
+class _ConnectionTile extends ConsumerWidget {
+  final CoachConnection connection;
+  const _ConnectionTile({required this.connection});
+
+  Future<void> _remove(BuildContext context, WidgetRef ref) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Bağlantı kaldırılsın mı?'),
+        content: Text(
+            '${connection.displayName} artık verilerini göremeyecek ve yeni plan ekleyemeyecek.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Vazgeç')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text('Kaldır', style: TextStyle(color: AppColors.danger))),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await SupabaseService.removeConnection(connection.id);
+      ref.invalidate(connectionsProvider);
+      ref.invalidate(coachContentProvider);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Bağlantı kaldırılamadı.',
+                style: TextStyle(color: AppColors.danger))));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = connection;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+      decoration: BoxDecoration(
+        color: AppColors.cardSurface,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.verified_user_outlined, color: AppColors.textPrimary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(c.displayName,
+                    style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w800)),
+                Text('${c.roleLabel} • verilerini görebilir',
+                    style: TextStyle(
+                        color: AppColors.textSecondary, fontSize: 12)),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: () => _remove(context, ref),
+            child: Text('Kaldır', style: TextStyle(color: AppColors.danger)),
           ),
         ],
       ),

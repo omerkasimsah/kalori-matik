@@ -333,15 +333,21 @@ class _CalorieDashboard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final mealsState = ref.watch(mealLogsProvider);
+    final fullName =
+        (ref.watch(userProfileProvider).valueOrNull?['full_name'] as String?)
+                ?.trim() ??
+            '';
     final userEmail = SupabaseService.getCurrentUser()?.email ?? '';
-    final userName =
-        userEmail.contains('@') ? userEmail.split('@').first : userEmail;
+    final userName = fullName.isNotEmpty
+        ? fullName.split(' ').first
+        : (userEmail.contains('@') ? userEmail.split('@').first : userEmail);
 
     return RefreshIndicator(
       color: AppColors.primary,
       onRefresh: () async {
         ref.invalidate(userProfileProvider);
         ref.invalidate(coachContentProvider);
+        ref.invalidate(connectionsProvider);
         await ref.read(mealLogsProvider.notifier).loadMeals();
       },
       child: CustomScrollView(

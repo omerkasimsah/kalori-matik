@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../features/home/models/meal_log.dart';
+import 'supabase_service.dart' show CoachConnection;
 import '../config/app_config.dart';
 
 /// `--dart-define=DEMO_MODE=client|coach` ile çalışan, internet ve hesap
@@ -253,6 +254,29 @@ class DemoBackend {
       ],
     },
   ];
+
+  // ── Danışanın koç bağlantıları ───────────────────────────────────────────
+
+  static final List<CoachConnection> _connections = [
+    const CoachConnection(
+        id: 'dc1', isActive: true, name: 'Dyt. Elif Kaya', role: 'dietitian'),
+    const CoachConnection(
+        id: 'dc2', isActive: false, name: 'Koç Can Demir', role: 'coach'),
+  ];
+
+  static List<CoachConnection> get connections => List.of(_connections);
+
+  static void respond(String id, bool accept) {
+    final i = _connections.indexWhere((c) => c.id == id);
+    if (i < 0) return;
+    if (accept) {
+      final c = _connections[i];
+      _connections[i] = CoachConnection(
+          id: c.id, isActive: true, name: c.name, role: c.role);
+    } else {
+      _connections.removeAt(i);
+    }
+  }
 
   // ── Koçun danışanları ────────────────────────────────────────────────────
 

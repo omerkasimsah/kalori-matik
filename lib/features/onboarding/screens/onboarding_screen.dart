@@ -16,6 +16,7 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   // Karşılama ekranları arası kaydırmalı geçiş (Slide) denetleyicisi
   final PageController _pageController = PageController();
+  final TextEditingController _nameCtrl = TextEditingController();
   int _currentIndex = 0;
 
   // ── Kullanıcı Verileri State (Geçici Hafıza) ──
@@ -33,7 +34,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   double _activityLevel = 1.375; // Varsayılan: Hafif Hareketli
 
 
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _pageController.dispose();
+    super.dispose();
+  }
+
   void _nextPage() {
+    if (_currentIndex == 0 && _nameCtrl.text.trim().length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Lütfen adını ve soyadını gir.',
+            style: TextStyle(color: AppColors.danger)),
+      ));
+      return;
+    }
     // Danışan olmayan profesyoneller (Koç/Diyetisyen) fiziksel ölçüm adımlarını atlar (Early Exit).
     if (_currentIndex == 0 && (_role == 'coach' || _role == 'dietitian')) {
       _finishOnboarding();
@@ -85,6 +100,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       if (_role == 'client') {
         await SupabaseService.saveProfile({
           'role': _role,
+          'full_name': _nameCtrl.text.trim(),
           'kalori_id': kaloriId,
           'age': _age,
           'gender': _isMale ? 'Erkek' : 'Kadın',
@@ -97,6 +113,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       } else {
         await SupabaseService.saveProfile({
           'role': _role,
+          'full_name': _nameCtrl.text.trim(),
         });
       }
     } catch (e) {
@@ -124,7 +141,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Günlük Harcama Limitin:', textAlign: TextAlign.center),
+              const Text('Günlük Kalori Hedefin:', textAlign: TextAlign.center),
               const SizedBox(height: 16),
               Text(
                 '$target KCAL',
@@ -241,6 +258,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          TextField(
+            controller: _nameCtrl,
+            textCapitalization: TextCapitalization.words,
+            textInputAction: TextInputAction.done,
+            decoration: const InputDecoration(
+              labelText: 'Adın Soyadın',
+              prefixIcon: Icon(Icons.person_outline),
+            ),
+          ),
+          const SizedBox(height: 28),
           Text('Uygulamayı Hangi Amaçla Kullanacaksınız?', 
                style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                textAlign: TextAlign.center),
@@ -316,11 +343,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
           Slider(
             value: _age.toDouble(),
-            min: 12,
+            min: 18,
             max: 100,
             activeColor: AppColors.primary,
             onChanged: (val) => setState(() => _age = val.toInt()),
           ),
+          const SizedBox(height: 8),
+          Text('Uygulama 18 yaş ve üzeri kullanıcılar içindir.',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
         ],
       ),
     );

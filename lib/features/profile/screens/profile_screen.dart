@@ -29,6 +29,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   // Bilgi düzenleme form alanlarının (TextField) denetleyicileri
   final _weightCtrl = TextEditingController();
   final _heightCtrl = TextEditingController();
+  final _nameCtrl = TextEditingController();
   final _targetWeightLossCtrl = TextEditingController();
   final _daysCtrl = TextEditingController();
   final _ageCtrl = TextEditingController();
@@ -54,6 +55,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void dispose() {
     _weightCtrl.dispose();
     _heightCtrl.dispose();
+    _nameCtrl.dispose();
     _targetWeightLossCtrl.dispose();
     _daysCtrl.dispose();
     _ageCtrl.dispose();
@@ -67,6 +69,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       if (mounted) {
         setState(() => _profile = data);
         if (data != null) {
+          _nameCtrl.text = (data['full_name'] ?? '').toString();
           _weightCtrl.text = (data['weight'] ?? '').toString();
           _heightCtrl.text = (data['height'] ?? '').toString();
           _goal = data['goal'] ?? 'maintain';
@@ -135,6 +138,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ..._profile!,                  // mevcut tüm alanları koru
         'weight': weight,
         'height': height,
+        if (_nameCtrl.text.trim().isNotEmpty) 'full_name': _nameCtrl.text.trim(),
         'age': age,
         'activity_level': _activityLevel,
         'goal': _goal,
@@ -341,7 +345,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    user?.email?.split('@').first ?? 'Kullanıcı',
+                                    (_profile?['full_name'] as String?)?.isNotEmpty == true
+                                        ? _profile!['full_name'] as String
+                                        : (user?.email?.split('@').first ?? 'Kullanıcı'),
                                     style: TextStyle(
                                         color: AppColors.background,
                                         fontSize: 18,
@@ -483,6 +489,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         const SizedBox(height: 16),
                         if (_isEditing) ...[
                           // Düzenleme modu
+                          TextField(
+                            controller: _nameCtrl,
+                            textCapitalization: TextCapitalization.words,
+                            decoration: const InputDecoration(
+                              labelText: 'Ad Soyad',
+                              prefixIcon: Icon(Icons.person_outline),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
                           Row(
                             children: [
                               Expanded(

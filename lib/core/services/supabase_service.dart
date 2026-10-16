@@ -93,7 +93,18 @@ class SupabaseService {
 
     // Veri yapısına, güvenliği sağlamak için auth kullanıcısının ID'si gömülür
     profileData['id'] = user.id;
-    await client.from('profiles').upsert(profileData);
+    try {
+      await client.from('profiles').upsert(profileData);
+    } on PostgrestException catch (e) {
+      // phase4 SQL henüz çalıştırılmadıysa 'full_name' sütunu yoktur.
+      if (profileData.containsKey('full_name') &&
+          e.message.contains('full_name')) {
+        final copy = Map<String, dynamic>.of(profileData)..remove('full_name');
+        await client.from('profiles').upsert(copy);
+      } else {
+        rethrow;
+      }
+    }
   }
 
   static Future<Map<String, dynamic>?> getProfile() async {
@@ -161,17 +172,19 @@ class SupabaseService {
     // 2. Bağlantı oluştur (zaten varsa uyar)
     final existing = await client
         .from('connections')
-        .select('id')
+        .select('id, status')
         .eq('professional_id', user.id)
         .eq('client_id', clientData['id'])
         .maybeSingle();
     if (existing != null) {
-      throw Exception('Bu danışan zaten listenizde.');
+      throw Exception(existing['status'] == 'active'
+          ? 'Bu danışan zaten listenizde.'
+          : 'Bu danışana davet zaten gönderildi, onayını bekliyor.');
     }
     await client.from('connections').insert({
       'professional_id': user.id,
       'client_id': clientData['id'],
-      'status': 'active',
+      'status': 'pending', // danışan onaylayınca 'active' olur
     });
   }
 
@@ -189,7 +202,8 @@ class SupabaseService {
           created_at,
           profiles!connections_client_id_fkey (*)
         ''')
-        .eq('professional_id', user.id);
+        .eq('professional_id', user.id)
+        .eq('status', 'active');
 
     return List<Map<String, dynamic>>.from(response);
   }
@@ -569,7 +583,7 @@ class SupabaseService {
 
   /// Koç–danışan bağlantısını sonlandırır.
   static Future<void> removeConnection(String connectionId) async {
-    if (isDemo) return;
+    if (isDemo) return DemoBackend.respond(connectionId, false);
     await client.from('connections').delete().eq('id', connectionId);
   }
 
@@ -612,27 +626,21 @@ class SupabaseService {
     await client.from('profiles').update({'weight': weight}).eq('id', user.id);
   }
 
-  /// Danışanın bağlı olduğu koç/diyetisyenin adı (yoksa null).
-  static Future<String?> getMyCoachName() async {
-    if (isDemo) return 'Dyt. Elif Kaya';
-    final user = getCurrentUser();
-    if (user == null) return null;
-    final conn = await client
-        .from('connections')
-        .select('professional_id')
-        .eq('client_id', user.id)
-        .eq('status', 'active')
-        .limit(1)
-        .maybeSingle();
-    if (conn == null) return null;
-    final prof = await client
-        .from('profiles')
-        .select('full_name, role')
-        .eq('id', conn['professional_id'])
-        .maybeSingle();
-    final name = prof?['full_name'] as String?;
-    if (name != null && name.isNotEmpty) return name;
-    return prof?['role'] == 'dietitian' ? 'Diyetisyenin' : 'Koçun';
+  /// Danışanın koç/diyetisyen bağlantıları (bekleyen davetler dahil).
+  static Future<List<CoachConnection>> getMyConnections() async {
+    if (isDemo) return DemoBackend.connections;
+    if (getCurrentUser() == null) return [];
+    final rows = await client.rpc('my_connections');
+    return (rows as List)
+        .map((e) => CoachConnection.fromMap(Map<String, dynamic>.from(e as Map)))
+        .toList();
+  }
+
+  /// Gelen daveti kabul eder veya reddeder.
+  static Future<void> respondToConnection(String id, {required bool accept}) async {
+    if (isDemo) return DemoBackend.respond(id, accept);
+    await client.rpc('respond_to_connection',
+        params: {'p_id': id, 'p_accept': accept});
   }
 
   // ── KOÇ İÇERİKLERİ (DANIŞAN TARAFI) ─────────────────────────────────────
@@ -735,4 +743,32 @@ class WeightEntry {
         weight: (map['weight'] as num).toDouble(),
         date: DateTime.parse(map['created_at'].toString()).toLocal(),
       );
+}
+
+/// Danışanın gördüğü koç/diyetisyen bağlantısı.
+class CoachConnection {
+  final String id;
+  final bool isActive;
+  final String? name;
+  final String? role;
+
+  const CoachConnection({
+    required this.id,
+    required this.isActive,
+    this.name,
+    this.role,
+  });
+
+  factory CoachConnection.fromMap(Map<String, dynamic> m) => CoachConnection(
+        id: m['id'].toString(),
+        isActive: m['status'] == 'active',
+        name: m['professional_name'] as String?,
+        role: m['professional_role'] as String?,
+      );
+
+  String get roleLabel => role == 'dietitian' ? 'Diyetisyen' : 'Koç';
+
+  /// Ad yoksa rolü gösterir.
+  String get displayName =>
+      (name != null && name!.trim().isNotEmpty) ? name!.trim() : roleLabel;
 }

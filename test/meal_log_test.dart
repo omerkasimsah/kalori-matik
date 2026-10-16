@@ -8,6 +8,7 @@ MealLog _meal(String id, DateTime at, int kcal, {double? p}) =>
     MealLog(id: id, name: 'Yemek $id', calories: kcal, createdAt: at, protein: p);
 
 void main() {
+  connectionTests();
   group('MealLog', () {
     test('fromMap Supabase satırını ayrıştırır', () {
       final m = MealLog.fromMap({
@@ -102,6 +103,30 @@ void main() {
           contains('zaten bir hesap'));
       expect(SupabaseService.authErrorMessage(Exception('???')),
           contains('tekrar deneyin'));
+    });
+  });
+}
+
+void connectionTests() {
+  group('CoachConnection', () {
+    test('ad yoksa role göre etiket gösterir', () {
+      final c = CoachConnection.fromMap({
+        'id': 1,
+        'status': 'pending',
+        'professional_name': null,
+        'professional_role': 'dietitian',
+      });
+      expect(c.isActive, isFalse);
+      expect(c.displayName, 'Diyetisyen');
+      final d = CoachConnection.fromMap({
+        'id': 2,
+        'status': 'active',
+        'professional_name': ' Dyt. Elif ',
+        'professional_role': 'coach',
+      });
+      expect(d.isActive, isTrue);
+      expect(d.displayName, 'Dyt. Elif');
+      expect(d.roleLabel, 'Koç');
     });
   });
 }

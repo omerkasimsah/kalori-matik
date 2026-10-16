@@ -172,7 +172,8 @@ class _ProfessionalDashboardState extends ConsumerState<ProfessionalDashboard> {
                 await SupabaseService.addClientByKaloriId(val);
                 ref.invalidate(clientStatusesProvider);
                 messenger.showSnackBar(const SnackBar(
-                    content: Text('Danışan eklendi 🎉')));
+                    content: Text(
+                        'Davet gönderildi. Danışan onayladığında listende görünecek.')));
               } catch (e) {
                 messenger.showSnackBar(SnackBar(
                   content: Text(e.toString().replaceAll('Exception: ', ''),
@@ -554,8 +555,8 @@ class _EmptyClients extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Danışanından Profil ekranındaki 6 haneli KaloriID kodunu iste ve '
-            '"Danışan Ekle" ile bağlan. Öğünlerini, kilosunu ve ilerlemesini '
-            'buradan takip edebilirsin.',
+            '"Danışan Ekle" ile davet gönder. Danışan onayladığında öğünlerini, '
+            'kilosunu ve ilerlemesini buradan takip edebilirsin.',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppColors.textSecondary, height: 1.4),
           ),
