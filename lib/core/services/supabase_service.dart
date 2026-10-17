@@ -18,7 +18,11 @@ class SupabaseService {
   // ── KİMLİK DOĞRULAMA (AUTH) ────────────────────────────────────────────────
 
   static Future<AuthResponse> signUp(String email, String password) async {
-    return await client.auth.signUp(email: email.trim(), password: password);
+    return await client.auth.signUp(
+      email: email.trim(),
+      password: password,
+      emailRedirectTo: AppConfig.authRedirect,
+    );
   }
 
   static Future<AuthResponse> signIn(String email, String password) async {
@@ -31,7 +35,14 @@ class SupabaseService {
   }
 
   static Future<void> resetPassword(String email) async {
-    await client.auth.resetPasswordForEmail(email.trim());
+    await client.auth
+        .resetPasswordForEmail(email.trim(), redirectTo: AppConfig.authRedirect);
+  }
+
+  /// Giriş yapmış (veya kurtarma bağlantısıyla gelen) kullanıcının şifresini değiştirir.
+  static Future<void> updatePassword(String newPassword) async {
+    if (isDemo) return;
+    await client.auth.updateUser(UserAttributes(password: newPassword));
   }
 
   /// Supabase kimlik doğrulama hatalarını anlaşılır Türkçe mesaja çevirir.

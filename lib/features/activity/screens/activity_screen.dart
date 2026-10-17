@@ -4,12 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/services/supabase_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../home/providers/calorie_provider.dart';
+import '../data/plan_generator.dart';
 import '../data/sports.dart';
 import '../data/workout_programs.dart';
 import '../providers/activity_log_provider.dart';
 import '../providers/pedometer_provider.dart';
+import '../providers/weekly_plan_provider.dart';
 import 'active_workout_screen.dart';
 import 'exercise_screens.dart';
+import 'plan_wizard_screen.dart';
 import 'program_detail_screen.dart';
 
 /// Koçun danışana atadığı aktif antrenman planları.
@@ -56,20 +59,50 @@ class ActivityScreen extends ConsumerWidget {
     required String title,
     required List<WorkoutStep> steps,
     required String sportId,
+    double? met,
   }) async {
-    final minutes = await Navigator.of(context).push<int>(MaterialPageRoute(
-      builder: (_) => ActiveWorkoutScreen(title: title, steps: steps),
-    ));
-    if (minutes == null) return;
     final weight = ref.read(userWeightProvider) ?? 70;
     final sport = sportById(sportId);
+    final effectiveMet = met ?? sport.met;
+    final minutes = await Navigator.of(context).push<int>(MaterialPageRoute(
+      builder: (_) => ActiveWorkoutScreen(
+          title: title, steps: steps, met: effectiveMet, weightKg: weight),
+    ));
+    if (minutes == null) return;
     await ref.read(activityLogProvider.notifier).add(
-        title: title, sport: sport, minutes: minutes, weightKg: weight);
+        title: title,
+        sport: sport,
+        minutes: minutes,
+        weightKg: weight,
+        met: effectiveMet);
     if (context.mounted) {
-      final kcal = sport.caloriesFor(minutes: minutes, weightKg: weight);
+      final kcal = (effectiveMet * weight * minutes / 60).round();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('$title kaydedildi • $minutes dk • $kcal kcal 🔥')));
     }
+  }
+
+  /// Programı doğrudan başlatır; bitince süre ve kalori kaydedilir.
+  static Future<void> startProgram(
+      BuildContext context, WidgetRef ref, WorkoutProgram p) {
+    return startWorkout(context, ref,
+        title: p.title,
+        steps: p.toSteps(),
+        sportId: _sportFor(p.category),
+        met: p.met);
+  }
+
+  /// Program ayrıntı sayfasını açar.
+  static void openProgram(
+      BuildContext context, WidgetRef ref, WorkoutProgram p) {
+    final weight = ref.read(userWeightProvider) ?? 70;
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => ProgramDetailScreen(
+        program: p,
+        calories: p.caloriesFor(weight),
+        onStart: () => startProgram(context, ref, p),
+      ),
+    ));
   }
 
   static String _sportFor(ProgramCategory c) => switch (c) {
@@ -82,6 +115,7 @@ class ActivityScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final plans = ref.watch(myWorkoutPlansProvider).valueOrNull ?? const [];
     final filter = ref.watch(programFilterProvider);
+    final weight = ref.watch(userWeightProvider) ?? 70;
     final programs = [
       for (final p in workoutPrograms)
         if (filter == null || p.category == filter) p
@@ -118,6 +152,12 @@ class ActivityScreen extends ConsumerWidget {
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               sliver: SliverToBoxAdapter(child: _TodayActivities()),
+            ),
+
+            // ── Haftalık plan ────────────────────────────────────────────
+            const SliverPadding(
+              padding: EdgeInsets.fromLTRB(20, 16, 20, 0),
+              sliver: SliverToBoxAdapter(child: _WeeklyPlanSection()),
             ),
 
             // ── Koçun planları ───────────────────────────────────────────
@@ -214,17 +254,8 @@ class ActivityScreen extends ConsumerWidget {
                     final p = programs[i];
                     return _ProgramCard(
                       program: p,
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => ProgramDetailScreen(
-                            program: p,
-                            onStart: () => startWorkout(context, ref,
-                                title: p.title,
-                                steps: p.toSteps(),
-                                sportId: _sportFor(p.category)),
-                          ),
-                        ),
-                      ),
+                      calories: p.caloriesFor(weight),
+                      onTap: () => openProgram(context, ref, p),
                     );
                   },
                 ),
@@ -343,8 +374,10 @@ class _FilterChip extends StatelessWidget {
 
 class _ProgramCard extends StatelessWidget {
   final WorkoutProgram program;
+  final int calories;
   final VoidCallback onTap;
-  const _ProgramCard({required this.program, required this.onTap});
+  const _ProgramCard(
+      {required this.program, required this.calories, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -389,7 +422,7 @@ class _ProgramCard extends StatelessWidget {
                       fontSize: 16,
                       height: 1.2)),
               const SizedBox(height: 4),
-              Text('${p.estimatedMinutes} dk • ${p.items.length} egzersiz',
+              Text('${p.estimatedMinutes} dk • ≈ $calories kcal',
                   style: TextStyle(
                       color: AppColors.textSecondary, fontSize: 12)),
             ],
@@ -751,6 +784,277 @@ class _Metric extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ── Haftalık plan ────────────────────────────────────────────────────────────
+
+class _WeeklyPlanSection extends ConsumerWidget {
+  const _WeeklyPlanSection();
+
+  static const _short = ['Pt', 'Sa', 'Ça', 'Pe', 'Cu', 'Ct', 'Pz'];
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final plan = ref.watch(weeklyPlanProvider);
+    final weight = ref.watch(userWeightProvider) ?? 70;
+
+    if (plan == null) {
+      return Material(
+        color: AppColors.cardSurface,
+        borderRadius: BorderRadius.circular(22),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(22),
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const PlanWizardScreen())),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(Icons.auto_awesome,
+                      color: AppColors.onPrimary, size: 22),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Sana özel program oluştur',
+                          style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16)),
+                      const SizedBox(height: 2),
+                      Text(
+                          'Hedefine, sürene ve seviyene göre haftalık plan',
+                          style: TextStyle(
+                              color: AppColors.textSecondary, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: AppColors.textSecondary),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final today = DateTime.now().weekday;
+    final todays = plan.dayFor(today);
+    final next = todays ?? plan.nextFrom(today);
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.cardSurface,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text('Haftalık Programım',
+                    style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16)),
+              ),
+              PopupMenuButton<String>(
+                tooltip: 'Seçenekler',
+                icon: Icon(Icons.more_horiz, color: AppColors.textSecondary),
+                onSelected: (v) async {
+                  if (v == 'new') {
+                    Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => const PlanWizardScreen()));
+                  } else {
+                    await ref.read(weeklyPlanProvider.notifier).clear();
+                  }
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: 'new', child: Text('Yeniden oluştur')),
+                  PopupMenuItem(value: 'delete', child: Text('Programı sil')),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              for (var d = 1; d <= 7; d++)
+                _DayDot(
+                  label: _short[d - 1],
+                  trains: plan.dayFor(d) != null,
+                  isToday: d == today,
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (next != null)
+            _PlanSessionTile(
+              day: next,
+              isToday: todays != null,
+              weight: weight,
+              onStart: () => ActivityScreen.startProgram(context, ref, next.program),
+              onOpen: () => ActivityScreen.openProgram(context, ref, next.program),
+            ),
+          if (todays == null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text('Bugün dinlenme günü. Sıradaki antrenman yukarıda.',
+                  style: TextStyle(
+                      color: AppColors.textSecondary, fontSize: 12)),
+            ),
+          const SizedBox(height: 8),
+          for (final d in plan.days)
+            if (d != next)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                leading: Container(
+                  width: 34,
+                  height: 34,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(_short[d.weekday - 1],
+                      style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12)),
+                ),
+                title: Text(d.program.title,
+                    style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w600)),
+                subtitle: Text(
+                    '${d.program.estimatedMinutes} dk • ≈ ${d.program.caloriesFor(weight)} kcal',
+                    style: TextStyle(color: AppColors.textSecondary)),
+                trailing:
+                    Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                onTap: () => ActivityScreen.openProgram(context, ref, d.program),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DayDot extends StatelessWidget {
+  final String label;
+  final bool trains;
+  final bool isToday;
+  const _DayDot(
+      {required this.label, required this.trains, required this.isToday});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(label,
+            style: TextStyle(
+                fontSize: 11,
+                fontWeight: isToday ? FontWeight.w900 : FontWeight.w500,
+                color:
+                    isToday ? AppColors.textPrimary : AppColors.textSecondary)),
+        const SizedBox(height: 6),
+        Container(
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            color: trains ? AppColors.primary : Colors.transparent,
+            shape: BoxShape.circle,
+            border: Border.all(
+                color: trains ? AppColors.primary : AppColors.divider,
+                width: isToday ? 2 : 1),
+          ),
+          child: trains
+              ? Icon(Icons.fitness_center, size: 14, color: AppColors.onPrimary)
+              : null,
+        ),
+      ],
+    );
+  }
+}
+
+class _PlanSessionTile extends StatelessWidget {
+  final PlanDay day;
+  final bool isToday;
+  final double weight;
+  final VoidCallback onStart;
+  final VoidCallback onOpen;
+
+  const _PlanSessionTile({
+    required this.day,
+    required this.isToday,
+    required this.weight,
+    required this.onStart,
+    required this.onOpen,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final p = day.program;
+    return Material(
+      color: AppColors.primary,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onOpen,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(isToday ? 'BUGÜN' : 'SIRADAKİ',
+                        style: TextStyle(
+                            color: AppColors.onPrimary.withAlpha(180),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2)),
+                    const SizedBox(height: 4),
+                    Text(p.title,
+                        style: TextStyle(
+                            color: AppColors.onPrimary,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 17)),
+                    const SizedBox(height: 2),
+                    Text(
+                        '${p.estimatedMinutes} dk • ${p.items.length} egzersiz • ≈ ${p.caloriesFor(weight)} kcal',
+                        style: TextStyle(
+                            color: AppColors.onPrimary.withAlpha(200),
+                            fontSize: 12)),
+                  ],
+                ),
+              ),
+              IconButton.filled(
+                onPressed: onStart,
+                style: IconButton.styleFrom(
+                  backgroundColor: AppColors.onPrimary,
+                  foregroundColor: AppColors.primary,
+                ),
+                icon: const Icon(Icons.play_arrow_rounded),
+                tooltip: 'Başla',
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

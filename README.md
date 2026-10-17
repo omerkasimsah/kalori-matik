@@ -18,6 +18,8 @@ KaloriMatik, günlük besin ve kalori takibini manuel arama listeleriyle vakit k
 - **🚶 Adım Sayar & Aktif Kalori:** Adımlar kilonuza göre yakılan kaloriye çevrilir ve günlük bütçenize eklenir.
 - **💧 Su Takibi:** Kilonuza göre hesaplanan günlük hedef ve hızlı ekleme butonları.
 - **🏋️ Antrenman Merkezi:** 9 hazır program (Gym itme/çekme/bacak, yeni başlayan, evde tüm vücut, karın, HIIT, salon kardiyo, esneme), 40 egzersizlik çevrimdışı kütüphane (adım adım anlatım, ipuçları, kas grubu/ekipman filtresi), set-set geri sayımlı antrenman oynatıcı, 16 spor için MET tabanlı kalori kaydı ve koçunuzun atadığı planlar. Yakılan kalori günlük bütçenize eklenir.
+- **🗓️ Sana Özel Program:** Hedef (kas / yağ yakımı / sağlık), yer (ev / salon), gün sayısı, süre ve seviyeye göre otomatik haftalık program; her seans için tahmini kalori. Hazır programlarda da süre ve kalori görünür.
+- **🔔 Bildirimler & Titreşim:** Öğün, su ve antrenman günü hatırlatıcıları (internetsiz, ayarlardan açılır); dokunsal geri bildirim.
 - **📊 İstatistikler & Geçmiş:** 7/30 günlük kalori grafiği, günlük ortalama, hedefte kalınan gün sayısı, kayıt serisi ve gün gün gruplanmış 30 günlük geçmiş.
 - **🧑‍⚕️ Diyetisyen / Koç Modülü:** Panel danışanları "ilgi bekliyor / yolunda" durumuna göre sıralar (kayıt girmeyen veya hedefi aşan danışanlar üstte). Danışan detayında 7 günlük kalori, kilo grafiği, öğünlere yorum, beslenme/antrenman planı ve notlar bulunur. Koç danışanı KaloriID ile **davet eder, danışan onaylar** (reddedebilir, sonradan kaldırabilir). Danışan koçunu, planları ve notları ana sayfada ve **"Koçum"** ekranında görür.
 - **🎨 Sade Tasarım, Açık & Koyu Tema:** Nötr siyah-beyaz arayüz; açık temada beyaz, koyu temada siyah ağırlıklı. Profil → Görünüm'den Sistem / Açık / Koyu seçilir. Renk yalnızca anlam taşıyorsa (uyarı, hata) kullanılır.
@@ -75,6 +77,7 @@ Supabase SQL Editor'de sırasıyla çalıştırın:
 4. `supabase_phase3.sql` — öğün düzenleme/silme izinleri, KaloriID ile danışan arama fonksiyonu, indeksler
 5. `supabase_phase4.sql` — kilo takibi, koçun öğüne yorumu, hesap silme fonksiyonu
 6. `supabase_phase5.sql` — danışan onayı (davet sistemi) ve koç yetkilerinin sıkılaştırılması
+7. `supabase_phase6.sql` — yapay zeka günlük kullanım sınırı (kullanıcı başına 30)
 
 ### 3. Gemini Anahtarı (Edge Function)
 Yayın sürümünde Gemini anahtarı **uygulamanın içinde bulunmaz**; Supabase Edge Function'da saklanır ([supabase/functions/analyze-food](supabase/functions/analyze-food/index.ts)). [Supabase CLI](https://supabase.com/docs/guides/cli) ile bir kez kurun:
@@ -93,6 +96,10 @@ flutter run --dart-define=GEMINI_API_KEY=ANAHTAR
 ```
 
 Kendi Supabase projeniz için `SUPABASE_URL` ve `SUPABASE_ANON_KEY` değerlerini de `--dart-define` ile verebilirsiniz. Anahtar yoksa ve fonksiyon kurulu değilse uygulama çalışmaya devam eder; öğünler elle eklenir.
+
+Supabase → Authentication → URL Configuration → **Redirect URLs** bölümüne `kalorimatik://auth-callback` ekleyin (şifre sıfırlama ve e-posta doğrulama bağlantıları uygulamaya bu adresle döner).
+
+İsteğe bağlı hata takibi: `--dart-define=SENTRY_DSN=...`
 
 ### 4. Demo Modu (hesap ve internet gerektirmez)
 Arayüzü sahte verilerle denemek veya ekran görüntüsü almak için:
@@ -116,6 +123,9 @@ flutter test
 ```
 
 ---
+
+## 📄 Belgeler
+[Gizlilik Politikası](PRIVACY.md) • [Kullanım Şartları](TERMS.md) • [Play Store Rehberi](STORE_LISTING.md)
 
 ## 🙏 Üçüncü Taraf Kaynaklar
 - Egzersiz görselleri ve hareket kayıtları [free-exercise-db](https://github.com/yuhonas/free-exercise-db) projesinden alınmıştır (Unlicense / kamu malı). Görseller `assets/exercises/` altındadır.

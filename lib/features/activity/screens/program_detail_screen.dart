@@ -9,8 +9,15 @@ class ProgramDetailScreen extends StatelessWidget {
   final WorkoutProgram program;
   final VoidCallback onStart;
 
-  const ProgramDetailScreen(
-      {super.key, required this.program, required this.onStart});
+  /// Kullanıcının kilosuna göre tahmini kalori.
+  final int calories;
+
+  const ProgramDetailScreen({
+    super.key,
+    required this.program,
+    required this.onStart,
+    required this.calories,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -74,11 +81,20 @@ class ProgramDetailScreen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
-                _Info(
-                  Icons.fitness_center,
-                  equipment.isEmpty ? 'Ekipman gerekmez' : equipment.join(', '),
-                  'Ekipman',
-                  wide: true,
+                Row(
+                  children: [
+                    Expanded(
+                        child: _Info(Icons.local_fire_department_outlined,
+                            '≈ $calories kcal', 'Tahmini yakım')),
+                    const SizedBox(width: 10),
+                    Expanded(
+                        child: _Info(
+                            Icons.fitness_center,
+                            equipment.isEmpty
+                                ? 'Ekipman yok'
+                                : equipment.join(', '),
+                            'Ekipman')),
+                  ],
                 ),
                 const SizedBox(height: 24),
                 Text('EGZERSİZLER',
@@ -125,13 +141,11 @@ class _Info extends StatelessWidget {
   final IconData icon;
   final String value;
   final String label;
-  final bool wide;
-  const _Info(this.icon, this.value, this.label, {this.wide = false});
+  const _Info(this.icon, this.value, this.label);
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: wide ? double.infinity : null,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.cardSurface,

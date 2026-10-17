@@ -102,7 +102,7 @@ Değerler tahmini olabilir. Rakamlar DAIMA sayı türünde olsun (string değil)
       throw GeminiException(switch (e.status) {
         401 || 403 => 'Oturum süresi dolmuş. Tekrar giriş yapın.',
         413 => 'Fotoğraf çok büyük. Daha küçük bir fotoğraf deneyin.',
-        429 => 'Çok fazla istek gönderildi. Biraz bekleyip tekrar deneyin.',
+        429 => 'Günlük yapay zeka analiz hakkın doldu. Öğünü elle ekleyebilir, yarın tekrar deneyebilirsin.',
         >= 500 => 'Yapay zeka servisi şu an yanıt vermiyor. Daha sonra deneyin.',
         _ => 'Analiz yapılamadı. Öğünü elle ekleyebilirsiniz.',
       });

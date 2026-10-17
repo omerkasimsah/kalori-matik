@@ -40,6 +40,9 @@ class WorkoutProgram {
   final IconData icon;
   final List<ProgramItem> items;
 
+  /// Özel MET değeri (yoksa kategoriye göre varsayılan).
+  final double? metOverride;
+
   const WorkoutProgram({
     required this.id,
     required this.title,
@@ -48,7 +51,24 @@ class WorkoutProgram {
     required this.level,
     required this.icon,
     required this.items,
+    this.metOverride,
   });
+
+  /// Yoğunluğa göre metabolik eşdeğer (kcal/kg/saat).
+  double get met =>
+      metOverride ??
+      (id == 'hiit_15'
+          ? 8.5
+          : switch (category) {
+              ProgramCategory.gym => 5.0,
+              ProgramCategory.home => 4.5,
+              ProgramCategory.cardio => 7.0,
+              ProgramCategory.flexibility => 2.5,
+            });
+
+  /// Tahmini kalori: MET × kilo × süre.
+  int caloriesFor(double weightKg) =>
+      (met * weightKg * estimatedMinutes / 60).round();
 
   Set<Equipment> get equipment =>
       {for (final i in items) i.exercise.equipment}..remove(Equipment.none);

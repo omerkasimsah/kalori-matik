@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
+import '../../../core/services/haptics.dart';
 import '../../../core/theme/app_colors.dart';
 import '../widgets/exercise_media.dart';
 
@@ -67,10 +67,16 @@ class ActiveWorkoutScreen extends StatefulWidget {
   final String title;
   final List<WorkoutStep> steps;
 
+  /// Bitişte yakılan kaloriyi göstermek için (MET ve kilo).
+  final double met;
+  final double weightKg;
+
   const ActiveWorkoutScreen({
     super.key,
     this.title = 'Hızlı Tüm Vücut',
     this.steps = quickFullBodyWorkout,
+    this.met = 5.0,
+    this.weightKg = 70,
   });
 
   @override
@@ -113,11 +119,11 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_remaining <= 1) {
-        HapticFeedback.mediumImpact();
+        Haptics.success();
         _next();
       } else {
         setState(() => _remaining--);
-        if (_remaining <= 3) HapticFeedback.selectionClick();
+        if (_remaining <= 3) Haptics.light();
       }
     });
   }
@@ -148,6 +154,7 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
   void _finish() {
     _timer?.cancel();
     _elapsed.stop();
+    Haptics.celebrate();
     setState(() => _finished = true);
   }
 
@@ -333,6 +340,7 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
   Widget _buildFinished() {
     final minutes = (_elapsed.elapsed.inSeconds / 60).ceil();
     final exercises = widget.steps.where((s) => !s.isRest).length;
+    final kcal = (widget.met * widget.weightKg * minutes / 60).round();
     return Padding(
       padding: const EdgeInsets.all(32),
       child: Column(
@@ -349,7 +357,7 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
                   fontWeight: FontWeight.w900,
                   color: AppColors.textPrimary)),
           const SizedBox(height: 12),
-          Text('$exercises egzersizi $minutes dakikada tamamladın.',
+          Text('$exercises egzersizi $minutes dakikada tamamladın.\n≈ $kcal kcal yaktın 🔥',
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: AppColors.textSecondary, fontSize: 16)),

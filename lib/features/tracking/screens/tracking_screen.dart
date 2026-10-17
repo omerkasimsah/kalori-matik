@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/services/haptics.dart';
 import '../../../core/services/supabase_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../home/providers/calorie_provider.dart';
@@ -56,6 +57,7 @@ class CoachSummaryCard extends ConsumerWidget {
       await SupabaseService.respondToConnection(c.id, accept: accept);
       ref.invalidate(connectionsProvider);
       ref.invalidate(coachContentProvider);
+      Haptics.success();
       messenger.showSnackBar(SnackBar(
           content: Text(accept
               ? '${c.displayName} artık verilerini görebilir.'

@@ -2,11 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Çekirdek (Core) ve Uygulama Teması İçe Aktarımları
 import 'core/config/app_config.dart';
+import 'core/services/notification_service.dart';
 import 'core/services/supabase_service.dart';
+import 'features/auth/screens/reset_password_screen.dart';
+import 'features/home/providers/calorie_provider.dart';
+import 'features/profile/screens/notification_settings_screen.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
@@ -35,12 +40,25 @@ void main() async {
     anonKey: AppConfig.supabaseAnonKey,
   );
 
-  // Uygulamanın en dış sarmalayıcısı olarak ProviderScope (Riverpod state yönetimi için) kullanılıyor.
-  runApp(
-    const ProviderScope(
-      child: KaloriMatikApp(),
-    ),
-  );
+  // Yerel bildirimler (web'de sessizce atlanır).
+  await NotificationService.init();
+
+  Widget app() => const ProviderScope(child: KaloriMatikApp());
+
+  // DSN verilmişse çökmeler Sentry'ye raporlanır (kişisel veri gönderilmez).
+  if (AppConfig.sentryDsn.isNotEmpty) {
+    await SentryFlutter.init(
+      (o) {
+        o.dsn = AppConfig.sentryDsn;
+        o.sendDefaultPii = false;
+        o.tracesSampleRate = 0;
+        o.attachScreenshot = false;
+      },
+      appRunner: () => runApp(app()),
+    );
+  } else {
+    runApp(app());
+  }
 }
 
 class KaloriMatikApp extends ConsumerWidget {
@@ -49,6 +67,12 @@ class KaloriMatikApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final mode = ref.watch(themeModeProvider);
+    // Şifre sıfırlama bağlantısından dönüldüyse yeni şifre ekranını aç.
+    ref.listen(authStateProvider, (_, next) {
+      if (next.valueOrNull?.event == AuthChangeEvent.passwordRecovery) {
+        _router.go('/reset-password');
+      }
+    });
     return MaterialApp.router(
       title: 'KaloriMatik',
       theme: AppTheme.lightTheme,
@@ -124,6 +148,14 @@ final _router = GoRouter(
           exercisesById.containsKey(state.pathParameters['id']) ? null : '/exercises',
       builder: (context, state) => ExerciseDetailScreen(
           exercise: exerciseById(state.pathParameters['id']!)),
+    ),
+    GoRoute(
+      path: '/reset-password',
+      builder: (context, state) => const ResetPasswordScreen(),
+    ),
+    GoRoute(
+      path: '/notifications',
+      builder: (context, state) => const NotificationSettingsScreen(),
     ),
     GoRoute(
       path: '/history',

@@ -47,6 +47,10 @@ dependencies:
   pedometer: ^4.1.1
   permission_handler: ^11.3.1
   url_launcher: ^6.3.1
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.10.1
+  flutter_timezone: ^1.0.8
+  sentry_flutter: ^8.14.2
 
 dev_dependencies:
   flutter_test:
@@ -58,6 +62,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -141,3 +147,23 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: assets/branding/icon.png
+  adaptive_icon_background: "#000000"
+  adaptive_icon_foreground: assets/branding/icon_fg.png
+
+flutter_native_splash:
+  color: "#FFFFFF"
+  color_dark: "#000000"
+  image: assets/branding/splash_light.png
+  image_dark: assets/branding/splash_dark.png
+  android_12:
+    color: "#FFFFFF"
+    color_dark: "#000000"
+    image: assets/branding/splash_light.png
+    image_dark: assets/branding/splash_dark.png
+  ios: false
+  web: false

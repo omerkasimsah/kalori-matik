@@ -713,6 +713,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   // ── Gizlilik ve Hesap ───────────────────────────────────
                   ListTile(
                     contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.notifications_outlined,
+                        color: AppColors.textSecondary),
+                    title: const Text('Bildirimler ve Titreşim'),
+                    trailing: const Icon(Icons.chevron_right, size: 20),
+                    onTap: () => context.push('/notifications'),
+                  ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
                     leading: Icon(Icons.privacy_tip_outlined,
                         color: AppColors.textSecondary),
                     title: const Text('Gizlilik Politikası'),

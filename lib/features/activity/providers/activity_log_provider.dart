@@ -96,13 +96,17 @@ class ActivityLogNotifier extends StateNotifier<List<ActivityEntry>> {
     required Sport sport,
     required int minutes,
     required double weightKg,
+    double? met,
   }) async {
+    // Program yoğunluğuna özel MET verilmişse onunla hesapla.
+    final effective =
+        met == null ? sport : Sport(sport.id, sport.name, met, sport.icon);
     final entry = ActivityEntry(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       title: title,
       sportId: sport.id,
       minutes: minutes,
-      calories: sport.caloriesFor(minutes: minutes, weightKg: weightKg),
+      calories: effective.caloriesFor(minutes: minutes, weightKg: weightKg),
       at: DateTime.now(),
     );
     state = [entry, ...state];

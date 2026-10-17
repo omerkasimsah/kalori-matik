@@ -9,6 +9,8 @@ import '../../profile/screens/profile_screen.dart';
 import '../../stats/screens/stats_screen.dart';
 import '../../tracking/screens/tracking_screen.dart';
 import '../models/meal_log.dart';
+import '../../../core/services/haptics.dart';
+import '../../profile/providers/notification_settings_provider.dart';
 import '../providers/calorie_provider.dart';
 import '../providers/water_provider.dart';
 import '../widgets/calorie_circular_indicator.dart';
@@ -62,6 +64,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(userProfileProvider);
+    // Hatırlatıcıları ayarlarla ve haftalık planla senkron tutar.
+    ref.watch(notificationSyncProvider);
 
     return profileAsync.when(
       loading: () => const Scaffold(
@@ -221,7 +225,10 @@ class _NavItem extends StatelessWidget {
       button: true,
       label: label,
       child: InkWell(
-        onTap: onTap,
+        onTap: () {
+          Haptics.light();
+          onTap();
+        },
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -294,6 +301,7 @@ class _CalorieDashboard extends ConsumerWidget {
     final messenger = ScaffoldMessenger.of(context);
     final notifier = ref.read(mealLogsProvider.notifier);
     try {
+      Haptics.warning();
       await notifier.deleteMeal(meal.id);
       messenger.hideCurrentSnackBar();
       messenger.showSnackBar(

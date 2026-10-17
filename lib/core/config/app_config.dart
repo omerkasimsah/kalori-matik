@@ -25,6 +25,12 @@ class AppConfig {
 
   static bool get hasGeminiKey => geminiApiKey.isNotEmpty;
 
+  /// E-posta bağlantılarının uygulamaya döndüğü adres (Supabase → Auth → URL Configuration'a ekleyin).
+  static const String authRedirect = 'kalorimatik://auth-callback';
+
+  /// Hata takibi (Sentry). Boşsa kapalı.
+  static const String sentryDsn = String.fromEnvironment('SENTRY_DSN');
+
   /// Demo modu: 'client' veya 'coach'. Boşsa kapalı.
   /// Örnek: flutter run -d chrome --dart-define=DEMO_MODE=coach
   static const String demoMode = String.fromEnvironment('DEMO_MODE');

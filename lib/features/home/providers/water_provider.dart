@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/utils/calorie_calculator.dart';
+import '../../../core/services/haptics.dart';
 import 'calorie_provider.dart';
 
 /// Günlük su hedefi (ml) — kiloya göre.
@@ -38,6 +39,7 @@ class WaterNotifier extends StateNotifier<int> {
   Future<void> refresh() => _load();
 
   Future<void> add(int ml) async {
+    if (ml > 0) Haptics.light();
     state = (state + ml).clamp(0, 10000);
     try {
       final prefs = await SharedPreferences.getInstance();

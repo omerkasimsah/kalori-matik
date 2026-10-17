@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/services/gemini_service.dart';
+import '../../../core/services/haptics.dart';
 import '../../../core/services/supabase_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../home/models/meal_log.dart';
@@ -164,6 +165,7 @@ class _AddMealScreenState extends ConsumerState<AddMealScreen> {
             carbs: draft.carbs,
             fat: draft.fat,
           );
+      Haptics.success();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${draft.name} eklendi (${draft.calories} kcal)')),

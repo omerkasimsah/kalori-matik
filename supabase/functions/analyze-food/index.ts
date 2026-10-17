@@ -8,6 +8,9 @@
 // Fonksiyon varsayılan olarak oturum (JWT) ister; yalnızca giriş yapmış
 // kullanıcılar çağırabilir.
 
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const DAILY_LIMIT = Number(Deno.env.get("AI_DAILY_LIMIT") ?? "30");
 const MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
 const MAX_IMAGE_CHARS = 4_000_000; // ~3 MB base64
 const ALLOWED_MIME = new Set([
@@ -47,6 +50,19 @@ function json(body: unknown, status = 200) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+
+  // Kullanıcı başına günlük analiz sınırı (supabase_phase6.sql)
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+    { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } },
+  );
+  const { data: allowed, error: quotaError } = await supabase.rpc(
+    "consume_ai_quota",
+    { p_limit: DAILY_LIMIT },
+  );
+  if (quotaError) return json({ error: "quota_check_failed" }, 500);
+  if (allowed !== true) return json({ error: "daily_limit", limit: DAILY_LIMIT }, 429);
 
   const apiKey = Deno.env.get("GEMINI_API_KEY");
   if (!apiKey) return json({ error: "server_not_configured" }, 500);
